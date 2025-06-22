@@ -6,7 +6,7 @@ plugins {
     id("io.ktor.plugin") version "3.2.0"
 }
 
-group = "ktor.learn"
+group = "learn.ktor"
 version = "0.0.1"
 
 application {
