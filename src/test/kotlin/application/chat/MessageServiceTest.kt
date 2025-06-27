@@ -1,6 +1,5 @@
 package ktor.learn.application.chat
 
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import ktor.learn.testutil.FakeWebSocketSession
 import learn.ktor.application.chat.MessageService
@@ -14,11 +13,9 @@ class MessageServiceTest {
     private val service = MessageService()
 
     @BeforeTest
-    fun setup() {
-        runBlocking {
-            ConnectionManager.getOnlineUsers().forEach {
-                ConnectionManager.unregister(it)
-            }
+    fun setup() = runTest {
+        ConnectionManager.getOnlineUsers().forEach {
+            ConnectionManager.unregister(it)
         }
     }
 

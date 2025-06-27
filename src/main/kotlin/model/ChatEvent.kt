@@ -20,4 +20,8 @@ sealed class ChatEvent {
     @Serializable
     @SerialName("command_result")
     data class CommandResult(val command: String, val result: String) : ChatEvent()
+
+    @Serializable
+    @SerialName("close_connection")
+    data class CloseConnection(val text: String) : ChatEvent()
 }

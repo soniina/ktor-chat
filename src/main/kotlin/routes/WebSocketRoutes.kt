@@ -1,5 +1,6 @@
 package learn.ktor.routes
 
+import application.chat.CommandHandler
 import learn.ktor.connection.ConnectionManager
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
@@ -12,28 +13,7 @@ import model.ChatEvent
 import kotlin.time.Duration.Companion.seconds
 
 val messageService = MessageService()
-
-private suspend fun DefaultWebSocketServerSession.handleCommand(user: String, command: String) {
-    when (command) {
-        "/help" -> {
-            messageService.notifyUser(user,
-                ChatEvent.CommandResult("help","Available commands: /users, /bye"
-                )
-            )
-        }
-        "/users" -> {
-            val users = ConnectionManager.getOnlineUsers()
-            messageService.notifyUser(user, ChatEvent.CommandResult("users","Online users: ${users.joinToString()}"
-            ))
-        }
-        "/bye" -> {
-            messageService.notifyUser(user, ChatEvent.SystemMessage("Goodbye!"))
-            close(CloseReason(CloseReason.Codes.NORMAL, "User left"))
-        }
-        else -> messageService.notifyUser(user, ChatEvent.ErrorMessage("Unknown command: $command"))
-    }
-}
-
+val commandHandler = CommandHandler()
 
 fun Application.configureSockets() {
     install(WebSockets) {
@@ -55,7 +35,9 @@ fun Application.configureSockets() {
                         val text = frame.readText()
 
                         if (text.startsWith("/")) {
-                            handleCommand(user, text)
+                            val event = commandHandler.handle(user, text)
+                            messageService.notifyUser(user, event)
+                            if (event is ChatEvent.CloseConnection) close(CloseReason(CloseReason.Codes.NORMAL, "User left"))
                         } else if (text.startsWith("@")) {
                             val parts = text.split(" ", limit = 2)
                             if (parts.size == 2) {
