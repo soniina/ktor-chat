@@ -1,4 +1,4 @@
-package ktor.learn
+package ktor.learn.application
 
 import io.ktor.client.request.*
 import io.ktor.http.*
