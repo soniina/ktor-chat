@@ -5,7 +5,34 @@ import io.ktor.server.application.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
+import kotlinx.coroutines.launch
+import learn.ktor.application.chat.MessageService
+import model.ChatEvent
+
 import kotlin.time.Duration.Companion.seconds
+
+val messageService = MessageService()
+
+private suspend fun DefaultWebSocketServerSession.handleCommand(user: String, command: String) {
+    when (command) {
+        "/help" -> {
+            messageService.notifyUser(user,
+                ChatEvent.CommandResult("help","Available commands: /users, /bye"
+                )
+            )
+        }
+        "/users" -> {
+            val users = ConnectionManager.getOnlineUsers()
+            messageService.notifyUser(user, ChatEvent.CommandResult("users","Online users: ${users.joinToString()}"
+            ))
+        }
+        "/bye" -> {
+            messageService.notifyUser(user, ChatEvent.SystemMessage("Goodbye!"))
+            close(CloseReason(CloseReason.Codes.NORMAL, "User left"))
+        }
+        else -> messageService.notifyUser(user, ChatEvent.ErrorMessage("Unknown command: $command"))
+    }
+}
 
 
 fun Application.configureSockets() {
@@ -21,13 +48,30 @@ fun Application.configureSockets() {
             val user = call.parameters["user"] ?: return@webSocket
             try {
                 ConnectionManager.register(user, this)
+                messageService.notifyUser(user, ChatEvent.SystemMessage("Welcome, $user! You are now connected."))
+
                 for (frame in incoming) {
                     if (frame is Frame.Text) {
-                        val message = frame.readText()
-                        ConnectionManager.sendMessage(user, "YOU SAID: $message")
+                        val text = frame.readText()
 
-                        if (message.equals("bye", ignoreCase = true)) {
-                            close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
+                        if (text.startsWith("/")) {
+                            handleCommand(user, text)
+                        } else if (text.startsWith("@")) {
+                            val parts = text.split(" ", limit = 2)
+                            if (parts.size == 2) {
+                                val recipient = parts[0].substring(1)
+                                val message = parts[1]
+
+                                launch {
+                                    if (messageService.sendMessage(user, recipient, message))
+                                        messageService.notifyUser(user, ChatEvent.CommandResult("send", "Message sent to $recipient"))
+                                    else messageService.notifyUser(user, ChatEvent.SystemMessage("User $recipient is not connected"))
+                                }
+                            } else {
+                                messageService.notifyUser(user, ChatEvent.ErrorMessage("Invalid message format. Use '@username message'"))
+                            }
+                        } else {
+                            messageService.notifyUser(user, ChatEvent.ErrorMessage("Unrecognized input"))
                         }
                     }
                 }
