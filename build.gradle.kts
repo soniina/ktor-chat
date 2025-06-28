@@ -27,5 +27,8 @@ dependencies {
     implementation("io.ktor:ktor-server-config-yaml")
     implementation("io.ktor:ktor-serialization-kotlinx-json")
     testImplementation("io.ktor:ktor-server-test-host")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+    testImplementation("io.ktor:ktor-client-websockets:2.3.7")
+    testImplementation("io.ktor:ktor-client-core:2.3.7")
+    testImplementation("io.ktor:ktor-client-cio:2.3.7")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlin_version")
 }
