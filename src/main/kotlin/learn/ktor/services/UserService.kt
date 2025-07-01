@@ -1,6 +1,6 @@
-package application.services
+package learn.ktor.services
 
-import model.User
+import learn.ktor.model.User
 import java.util.concurrent.ConcurrentHashMap
 import org.mindrot.jbcrypt.BCrypt
 

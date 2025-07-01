@@ -1,7 +1,7 @@
-package application.chat
+package learn.ktor.services
 
 import learn.ktor.connection.ConnectionManager
-import model.ChatEvent
+import learn.ktor.model.ChatEvent
 
 class CommandHandler {
     suspend fun handle(user: String, command: String): ChatEvent {

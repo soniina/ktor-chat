@@ -1,7 +1,7 @@
 package learn.ktor.routes
 
-import application.chat.CommandHandler
-import application.security.JwtConfig
+import learn.ktor.services.CommandHandler
+import learn.ktor.config.JwtConfig
 import com.auth0.jwt.JWT
 import learn.ktor.connection.ConnectionManager
 import io.ktor.server.application.*
@@ -9,8 +9,8 @@ import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.launch
-import learn.ktor.application.chat.MessageService
-import model.ChatEvent
+import learn.ktor.services.MessageService
+import learn.ktor.model.ChatEvent
 
 import kotlin.time.Duration.Companion.seconds
 

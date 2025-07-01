@@ -1,4 +1,4 @@
-package model
+package learn.ktor.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

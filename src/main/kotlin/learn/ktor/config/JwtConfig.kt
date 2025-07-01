@@ -1,4 +1,4 @@
-package application.security
+package learn.ktor.config
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm

@@ -1,9 +1,8 @@
-package ktor.learn.application
+package learn.ktor.application
 
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
-import learn.ktor.application.module
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

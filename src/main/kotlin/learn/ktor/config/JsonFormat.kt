@@ -1,4 +1,4 @@
-package learn.ktor.util
+package learn.ktor.config
 
 import kotlinx.serialization.json.Json
 

@@ -1,11 +1,10 @@
-package ktor.learn.application.chat
+package learn.ktor.services
 
 import kotlinx.coroutines.test.runTest
-import ktor.learn.testutil.FakeWebSocketSession
-import learn.ktor.application.chat.MessageService
+import learn.ktor.testutil.FakeWebSocketSession
+import learn.ktor.config.JsonFormat
 import learn.ktor.connection.ConnectionManager
-import learn.ktor.util.JsonFormat
-import model.ChatEvent
+import learn.ktor.model.ChatEvent
 import kotlin.test.*
 
 class MessageServiceTest {
@@ -51,8 +50,6 @@ class MessageServiceTest {
         service.notifyUser("bob", event)
 
         val encoded = JsonFormat.encodeToString(ChatEvent.serializer(), event)
-        println(bob.sent)
-        println(encoded)
         assertTrue(bob.sent.contains(encoded))
     }
 

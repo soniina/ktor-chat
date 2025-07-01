@@ -1,4 +1,4 @@
-package integration
+package learn.ktor.integration
 
 import io.ktor.client.plugins.websocket.*
 import io.ktor.server.testing.*
@@ -6,9 +6,9 @@ import io.ktor.websocket.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
 import learn.ktor.application.module
+import learn.ktor.config.JsonFormat
 import learn.ktor.connection.ConnectionManager
-import learn.ktor.util.JsonFormat
-import model.ChatEvent
+import learn.ktor.model.ChatEvent
 import kotlin.test.*
 
 

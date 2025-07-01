@@ -1,8 +1,8 @@
-package routes
+package learn.ktor.routes
 
 import kotlinx.serialization.Serializable
-import application.security.JwtConfig
-import application.services.UserService
+import learn.ktor.config.JwtConfig
+import learn.ktor.services.UserService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*

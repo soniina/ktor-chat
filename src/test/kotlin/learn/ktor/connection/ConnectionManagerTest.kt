@@ -1,8 +1,7 @@
-package ktor.learn.connection
+package learn.ktor.connection
 
 import kotlinx.coroutines.test.runTest
-import ktor.learn.testutil.FakeWebSocketSession
-import learn.ktor.connection.ConnectionManager
+import learn.ktor.testutil.FakeWebSocketSession
 import kotlin.test.*
 
 class ConnectionManagerTest {

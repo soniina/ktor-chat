@@ -1,12 +1,12 @@
 package learn.ktor.application
 
-import application.security.JwtConfig
+import learn.ktor.config.JwtConfig
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
 import kotlinx.serialization.json.Json
 import learn.ktor.routes.*
-import routes.configureAuthRouting
+import learn.ktor.routes.configureAuthRouting
 
 fun main(args: Array<String>) {
     io.ktor.server.netty.EngineMain.main(args)

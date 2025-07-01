@@ -1,4 +1,4 @@
-package ktor.learn.testutil
+package learn.ktor.testutil
 
 import io.ktor.websocket.*
 import kotlinx.coroutines.Dispatchers

@@ -4,8 +4,8 @@ import io.ktor.websocket.*
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import learn.ktor.util.JsonFormat
-import model.ChatEvent
+import learn.ktor.config.JsonFormat
+import learn.ktor.model.ChatEvent
 import java.util.concurrent.ConcurrentHashMap
 
 object ConnectionManager {

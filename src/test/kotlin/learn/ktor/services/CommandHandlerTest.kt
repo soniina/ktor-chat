@@ -1,9 +1,9 @@
-package application.chat
+package learn.ktor.services
 
 import kotlinx.coroutines.test.runTest
-import ktor.learn.testutil.FakeWebSocketSession
+import learn.ktor.testutil.FakeWebSocketSession
 import learn.ktor.connection.ConnectionManager
-import model.ChatEvent
+import learn.ktor.model.ChatEvent
 import kotlin.test.*
 
 class CommandHandlerTest {
