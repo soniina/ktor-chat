@@ -1,6 +1,5 @@
 package learn.ktor.routes
 
-import kotlinx.serialization.Serializable
 import learn.ktor.config.JwtConfig
 import learn.ktor.services.UserService
 import io.ktor.http.*
@@ -8,20 +7,9 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-
-
-@Serializable
-data class AuthRequest(val username: String, val password: String)
-
-@Serializable
-data class AuthResponse(val token: String, val message: String? = null)
-
-@Serializable
-data class ErrorResponse(val error: String)
+import learn.ktor.model.auth.*
 
 fun Application.configureAuthRouting() {
-
-    val userService = UserService()
 
     routing {
         post("/register") {
@@ -33,7 +21,7 @@ fun Application.configureAuthRouting() {
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("Username and password required"))
                 return@post
             }
-            if (!userService.register(username, password)) {
+            if (!UserService.register(username, password)) {
                 call.respond(HttpStatusCode.Conflict, ErrorResponse("Username already exists"))
                 return@post
             }
@@ -50,7 +38,7 @@ fun Application.configureAuthRouting() {
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("Username and password required"))
                 return@post
             }
-            if (!userService.authenticate(username, password)) {
+            if (!UserService.authenticate(username, password)) {
                 call.respond(HttpStatusCode.Unauthorized, ErrorResponse("Invalid username or password"))
                 return@post
             }

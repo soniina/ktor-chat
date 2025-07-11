@@ -5,7 +5,7 @@ import org.jetbrains.annotations.VisibleForTesting
 import java.util.concurrent.ConcurrentHashMap
 import org.mindrot.jbcrypt.BCrypt
 
-class UserService {
+object UserService {
     private val users = ConcurrentHashMap<String, User>()
 
     fun register(username: String, password: String): Boolean {

@@ -5,43 +5,41 @@ import kotlin.test.*
 
 class UserServiceTest {
 
-    private val service = UserService()
-
     @BeforeTest
     fun setup() = runTest {
-        service.clear()
+        UserService.clear()
     }
 
     @Test
     fun `should register new user`() = runTest {
-        val result = service.register("alice", "password")
+        val result = UserService.register("alice", "password")
         assertTrue(result)
     }
 
     @Test
     fun `should not register duplicate usernames`() = runTest {
-        service.register("alice", "password")
-        val result = service.register("alice", "another")
+        UserService.register("alice", "password")
+        val result = UserService.register("alice", "another")
         assertFalse(result)
     }
 
     @Test
     fun `should authenticate user`() = runTest {
-        service.register("alice", "password")
-        val result = service.authenticate("alice", "password")
+        UserService.register("alice", "password")
+        val result = UserService.authenticate("alice", "password")
         assertTrue(result)
     }
 
     @Test
     fun `should not authenticate invalid password`() = runTest {
-        service.register("alice", "password")
-        val result = service.authenticate("alice", "wrong")
+        UserService.register("alice", "password")
+        val result = UserService.authenticate("alice", "wrong")
         assertFalse(result)
     }
 
     @Test
     fun `should not authenticate unregistered user`() = runTest {
-        val result = service.authenticate("alice", "password")
+        val result = UserService.authenticate("alice", "password")
         assertFalse(result)
     }
 }

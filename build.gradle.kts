@@ -31,6 +31,7 @@ dependencies {
 
     testImplementation("io.ktor:ktor-server-test-host:$ktor_version")
     testImplementation("io.ktor:ktor-client-websockets:$ktor_version")
+    testImplementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
     testImplementation("io.ktor:ktor-client-core:$ktor_version")
     testImplementation("io.ktor:ktor-client-cio:$ktor_version")
 
