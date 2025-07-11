@@ -5,6 +5,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
 import kotlinx.serialization.json.Json
+import learn.ktor.config.DatabaseFactory
 import learn.ktor.routes.*
 import learn.ktor.routes.configureAuthRouting
 
@@ -13,6 +14,8 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
+    val config = environment.config
+
     install(ContentNegotiation) {
         json(Json {
             prettyPrint = true
@@ -24,4 +27,6 @@ fun Application.module() {
     configureWebSockets()
     configureAuthRouting()
     JwtConfig.configure(this)
+
+    DatabaseFactory.init(config)
 }

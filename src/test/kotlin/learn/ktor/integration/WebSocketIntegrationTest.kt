@@ -31,7 +31,7 @@ class WebSocketIntegrationTest {
         }
     }
 
-    suspend fun registerAndGetToken(client: HttpClient, username: String, password: String): String? {
+    private suspend fun registerAndGetToken(client: HttpClient, username: String, password: String): String? {
         val response = client.post("/register") {
             contentType(ContentType.Application.Json)
             setBody(JsonFormat.encodeToString(AuthRequest(username, password)))

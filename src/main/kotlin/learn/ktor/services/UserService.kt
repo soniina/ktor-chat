@@ -1,28 +1,26 @@
 package learn.ktor.services
 
-import learn.ktor.model.User
-import org.jetbrains.annotations.VisibleForTesting
-import java.util.concurrent.ConcurrentHashMap
+import learn.ktor.repository.UserRepository
 import org.mindrot.jbcrypt.BCrypt
 
 object UserService {
-    private val users = ConcurrentHashMap<String, User>()
+
+    private val userRepository = UserRepository()
 
     fun register(username: String, password: String): Boolean {
-        if (users.containsKey(username)) return false
+        if (userRepository.findByUsername(username) != null) return false
 
         val hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt())
-        users[username] = User(username, hashedPassword)
+        userRepository.addUser(username, hashedPassword)
         return true
     }
 
     fun authenticate(username: String, password: String): Boolean {
-        if (!users.containsKey(username)) return false
-        return BCrypt.checkpw(password, users[username]?.passwordHash)
+        val user = userRepository.findByUsername(username) ?: return false
+        return BCrypt.checkpw(password, user.password)
     }
 
-    @VisibleForTesting
-    fun clear() {
-        users.clear()
-    }
+//    @VisibleForTesting
+//    fun clear() {
+//    }
 }
