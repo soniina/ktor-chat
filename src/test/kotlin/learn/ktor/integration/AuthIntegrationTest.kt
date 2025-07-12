@@ -5,25 +5,32 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.server.config.*
 import io.ktor.server.testing.*
-import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import learn.ktor.application.module
+import learn.ktor.config.DatabaseFactory
 import learn.ktor.config.JsonFormat
 import learn.ktor.model.auth.AuthRequest
-import learn.ktor.services.UserService
+import learn.ktor.repository.Users
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.test.*
 
 class AuthIntegrationTest {
 
-    @BeforeTest
-    fun setup() = runTest {
-        UserService.clear()
-    }
-
     @Test
     fun `should register and login user`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.yaml")
+        }
+
         application {
+            val config = environment.config
+            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
+            transaction {
+                Users.deleteAll()
+            }
             module()
         }
 
@@ -65,7 +72,16 @@ class AuthIntegrationTest {
 
     @Test
     fun `should not register blank username`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.yaml")
+        }
+
         application {
+            val config = environment.config
+            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
+            transaction {
+                Users.deleteAll()
+            }
             module()
         }
 
@@ -93,7 +109,16 @@ class AuthIntegrationTest {
 
     @Test
     fun `should not login blank password`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.yaml")
+        }
+
         application {
+            val config = environment.config
+            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
+            transaction {
+                Users.deleteAll()
+            }
             module()
         }
 
@@ -122,10 +147,18 @@ class AuthIntegrationTest {
 
     @Test
     fun `should not register username exists`() = testApplication {
-        application {
-            module()
+        environment {
+            config = ApplicationConfig("application-test.yaml")
         }
 
+        application {
+            val config = environment.config
+            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
+            transaction {
+                Users.deleteAll()
+            }
+            module()
+        }
         val client = createClient {
             install(ContentNegotiation) {
                 json(Json {
@@ -155,7 +188,16 @@ class AuthIntegrationTest {
 
     @Test
     fun `should not login invalid password`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.yaml")
+        }
+
         application {
+            val config = environment.config
+            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
+            transaction {
+                Users.deleteAll()
+            }
             module()
         }
 

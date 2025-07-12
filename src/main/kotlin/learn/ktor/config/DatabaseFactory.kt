@@ -10,20 +10,28 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 object DatabaseFactory {
 
-    fun init(config: ApplicationConfig) {
-        val hikariConfig = HikariConfig().apply {
-            jdbcUrl = config.property("ktor.db.url").getString()
-            driverClassName = "org.postgresql.Driver"
-            username = config.property("ktor.db.user").getString()
-            password = config.property("ktor.db.password").getString()
-            maximumPoolSize = 10
-            isAutoCommit = false
-            transactionIsolation = "TRANSACTION_REPEATABLE_READ"
-        }
-        Database.connect(HikariDataSource(hikariConfig))
-
+    fun connect(config: HikariConfig) {
+        Database.connect(HikariDataSource(config))
         transaction {
             SchemaUtils.create(Users)
         }
+    }
+
+    fun postgresConfig(appConfig: ApplicationConfig): HikariConfig = HikariConfig().apply {
+        jdbcUrl = appConfig.property("ktor.db.url").getString()
+        driverClassName = "org.postgresql.Driver"
+        username = appConfig.property("ktor.db.user").getString()
+        password = appConfig.property("ktor.db.password").getString()
+        maximumPoolSize = 10
+        isAutoCommit = false
+        transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+    }
+
+    fun h2TestConfig(): HikariConfig = HikariConfig().apply {
+        jdbcUrl = "jdbc:h2:mem:test-${System.nanoTime()};DB_CLOSE_DELAY=-1;"
+        driverClassName = "org.h2.Driver"
+        maximumPoolSize = 5
+        isAutoCommit = false
+        transactionIsolation = "TRANSACTION_REPEATABLE_READ"
     }
 }

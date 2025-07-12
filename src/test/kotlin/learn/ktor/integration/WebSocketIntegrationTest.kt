@@ -7,17 +7,21 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.config.*
 import io.ktor.server.testing.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import learn.ktor.application.module
+import learn.ktor.config.DatabaseFactory
 import learn.ktor.config.JsonFormat
 import learn.ktor.connection.ConnectionManager
 import learn.ktor.model.ChatEvent
 import learn.ktor.model.auth.AuthRequest
-import learn.ktor.services.UserService
+import learn.ktor.repository.Users
+import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.test.*
 
 
@@ -25,7 +29,6 @@ class WebSocketIntegrationTest {
 
     @BeforeTest
     fun setup() = runTest {
-        UserService.clear()
         ConnectionManager.getOnlineUsers().forEach {
             ConnectionManager.unregister(it)
         }
@@ -40,10 +43,18 @@ class WebSocketIntegrationTest {
         return JsonFormat.decodeFromString<Map<String, String>>(body)["token"]
     }
 
-
     @Test
     fun `should connect and exchange messages`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.yaml")
+        }
+
         application {
+            val config = environment.config
+            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
+            transaction {
+                Users.deleteAll()
+            }
             module()
         }
 

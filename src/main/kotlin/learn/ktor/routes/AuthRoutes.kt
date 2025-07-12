@@ -9,7 +9,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import learn.ktor.model.auth.*
 
-fun Application.configureAuthRouting() {
+fun Application.configureAuthRouting(userService: UserService) {
 
     routing {
         post("/register") {
@@ -21,7 +21,7 @@ fun Application.configureAuthRouting() {
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("Username and password required"))
                 return@post
             }
-            if (!UserService.register(username, password)) {
+            if (!userService.register(username, password)) {
                 call.respond(HttpStatusCode.Conflict, ErrorResponse("Username already exists"))
                 return@post
             }
@@ -38,7 +38,7 @@ fun Application.configureAuthRouting() {
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("Username and password required"))
                 return@post
             }
-            if (!UserService.authenticate(username, password)) {
+            if (!userService.authenticate(username, password)) {
                 call.respond(HttpStatusCode.Unauthorized, ErrorResponse("Invalid username or password"))
                 return@post
             }

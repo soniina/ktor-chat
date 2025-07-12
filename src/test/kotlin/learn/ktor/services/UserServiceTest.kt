@@ -1,45 +1,50 @@
 package learn.ktor.services
 
 import kotlinx.coroutines.test.runTest
+import learn.ktor.config.DatabaseFactory
+import learn.ktor.repository.UserRepository
 import kotlin.test.*
 
 class UserServiceTest {
 
+    private val userRepository = UserRepository()
+    private val userService = UserService(userRepository)
+
     @BeforeTest
-    fun setup() = runTest {
-        UserService.clear()
+    fun setup() {
+        DatabaseFactory.connect(DatabaseFactory.h2TestConfig())
     }
 
     @Test
     fun `should register new user`() = runTest {
-        val result = UserService.register("alice", "password")
+        val result = userService.register("alice", "password")
         assertTrue(result)
     }
 
     @Test
     fun `should not register duplicate usernames`() = runTest {
-        UserService.register("alice", "password")
-        val result = UserService.register("alice", "another")
+        userService.register("alice", "password")
+        val result = userService.register("alice", "another")
         assertFalse(result)
     }
 
     @Test
     fun `should authenticate user`() = runTest {
-        UserService.register("alice", "password")
-        val result = UserService.authenticate("alice", "password")
+        userService.register("alice", "password")
+        val result = userService.authenticate("alice", "password")
         assertTrue(result)
     }
 
     @Test
     fun `should not authenticate invalid password`() = runTest {
-        UserService.register("alice", "password")
-        val result = UserService.authenticate("alice", "wrong")
+        userService.register("alice", "password")
+        val result = userService.authenticate("alice", "wrong")
         assertFalse(result)
     }
 
     @Test
     fun `should not authenticate unregistered user`() = runTest {
-        val result = UserService.authenticate("alice", "password")
+        val result = userService.authenticate("alice", "password")
         assertFalse(result)
     }
 }
