@@ -1,4 +1,4 @@
-package learn.ktor.repository
+package learn.ktor.repositories
 
 import org.jetbrains.exposed.sql.Table
 

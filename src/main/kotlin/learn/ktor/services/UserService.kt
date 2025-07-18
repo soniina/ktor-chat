@@ -1,6 +1,6 @@
 package learn.ktor.services
 
-import learn.ktor.repository.UserRepository
+import learn.ktor.repositories.UserRepository
 import org.mindrot.jbcrypt.BCrypt
 
 class UserService(private val userRepository: UserRepository) {

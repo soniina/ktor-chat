@@ -1,4 +1,4 @@
-package learn.ktor.repository
+package learn.ktor.repositories
 
 import learn.ktor.model.User
 import org.jetbrains.exposed.exceptions.ExposedSQLException

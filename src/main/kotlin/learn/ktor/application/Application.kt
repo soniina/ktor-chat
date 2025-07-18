@@ -6,8 +6,8 @@ import io.ktor.server.plugins.contentnegotiation.*
 import kotlinx.serialization.json.Json
 import learn.ktor.config.DatabaseFactory
 import learn.ktor.config.JwtProperties
-import learn.ktor.repository.MessageRepository
-import learn.ktor.repository.UserRepository
+import learn.ktor.repositories.MessageRepository
+import learn.ktor.repositories.UserRepository
 import learn.ktor.routes.*
 import learn.ktor.routes.configureAuthRouting
 import learn.ktor.services.TokenService

@@ -2,7 +2,7 @@ package learn.ktor.services
 
 import learn.ktor.connection.ConnectionManager
 import learn.ktor.model.ChatEvent
-import learn.ktor.repository.MessageRepository
+import learn.ktor.repositories.MessageRepository
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

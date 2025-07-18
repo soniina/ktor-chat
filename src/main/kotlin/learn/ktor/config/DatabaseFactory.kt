@@ -3,8 +3,8 @@ package learn.ktor.config
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.config.*
-import learn.ktor.repository.Messages
-import learn.ktor.repository.Users
+import learn.ktor.repositories.Messages
+import learn.ktor.repositories.Users
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction

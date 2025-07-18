@@ -1,10 +1,9 @@
 package learn.ktor.services
 
 import io.ktor.websocket.*
-import kotlinx.coroutines.launch
 import learn.ktor.connection.ConnectionManager
 import learn.ktor.model.ChatEvent
-import learn.ktor.repository.MessageRepository
+import learn.ktor.repositories.MessageRepository
 
 class ChatService(private val messageRepository: MessageRepository, private val commandHandler: CommandHandler) {
 
