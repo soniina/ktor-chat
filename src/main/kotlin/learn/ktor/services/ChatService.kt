@@ -1,0 +1,67 @@
+package learn.ktor.services
+
+import io.ktor.websocket.*
+import kotlinx.coroutines.launch
+import learn.ktor.connection.ConnectionManager
+import learn.ktor.model.ChatEvent
+import learn.ktor.repository.MessageRepository
+
+class ChatService(private val messageRepository: MessageRepository, private val commandHandler: CommandHandler) {
+
+    private suspend fun notifyUser(user: String, event: ChatEvent) {
+        ConnectionManager.sendTo(user, event)
+    }
+
+    private suspend fun sendMessage(sender: String, recipient: String, message: String): Boolean {
+        messageRepository.saveMessage(sender, recipient, message)
+        return if (ConnectionManager.isOnline(recipient)) {
+            ConnectionManager.sendTo(recipient, ChatEvent.UserMessage(sender, message))
+            true
+        } else false
+    }
+
+    suspend fun handleConnection(user: String, session: DefaultWebSocketSession) {
+        ConnectionManager.register(user, session)
+        notifyUser(user, ChatEvent.SystemMessage("Welcome, $user! You are now connected."))
+    }
+
+    suspend fun handleMessage(user: String, message: String) {
+        when {
+            message.startsWith("/") -> handleCommand(user, message)
+            message.startsWith("@") -> handleDirectMessage(user, message)
+            else -> notifyUser(user, ChatEvent.ErrorMessage("Unrecognized input"))
+        }
+    }
+
+    private suspend fun handleCommand(user: String, text: String) {
+        val event = commandHandler.handle(user, text)
+        notifyUser(user, event)
+
+        if (event is ChatEvent.CloseConnection)
+            ConnectionManager.getSession(user)?.close(CloseReason(CloseReason.Codes.NORMAL, "User left"))
+
+
+    }
+
+    private suspend fun handleDirectMessage(user: String, text: String) {
+        val parts = text.split(" ", limit = 2)
+        if (parts.size < 2) {
+            notifyUser(user, ChatEvent.ErrorMessage("Invalid message format. Use '@username message'"))
+            return
+        }
+
+        val recipient = parts[0].substring(1)
+        val message = parts[1]
+
+//        launch {
+            if (sendMessage(user, recipient, message)) {
+                notifyUser(user, ChatEvent.CommandResult("sent", "to $recipient"))
+            } else {
+                notifyUser(user, ChatEvent.ErrorMessage("User $recipient offline"))
+            }
+//        }
+    }
+
+    suspend fun cleanUp(user: String) = ConnectionManager.unregister(user)
+
+}

@@ -3,6 +3,7 @@ package learn.ktor.config
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.config.*
+import learn.ktor.repository.Messages
 import learn.ktor.repository.Users
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
@@ -13,7 +14,7 @@ object DatabaseFactory {
     fun connect(config: HikariConfig) {
         Database.connect(HikariDataSource(config))
         transaction {
-            SchemaUtils.create(Users)
+            SchemaUtils.create(Users, Messages)
         }
     }
 

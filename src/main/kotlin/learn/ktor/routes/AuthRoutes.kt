@@ -1,6 +1,5 @@
 package learn.ktor.routes
 
-import learn.ktor.config.JwtConfig
 import learn.ktor.services.UserService
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -8,8 +7,9 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import learn.ktor.model.auth.*
+import learn.ktor.services.TokenService
 
-fun Application.configureAuthRouting(userService: UserService) {
+fun Application.configureAuthRouting(userService: UserService, tokenService: TokenService) {
 
     routing {
         post("/register") {
@@ -26,7 +26,7 @@ fun Application.configureAuthRouting(userService: UserService) {
                 return@post
             }
             println("User registered $username")
-            call.respond(HttpStatusCode.Created, AuthResponse(JwtConfig.generateToken(username)))
+            call.respond(HttpStatusCode.Created, AuthResponse(tokenService.generateToken(username)))
         }
 
         post("/login") {
@@ -42,7 +42,7 @@ fun Application.configureAuthRouting(userService: UserService) {
                 call.respond(HttpStatusCode.Unauthorized, ErrorResponse("Invalid username or password"))
                 return@post
             }
-            call.respond(HttpStatusCode.OK, AuthResponse(JwtConfig.generateToken(username)))
+            call.respond(HttpStatusCode.OK, AuthResponse(tokenService.generateToken(username)))
         }
     }
 

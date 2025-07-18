@@ -10,12 +10,12 @@ class UserRepository {
 
     fun addUser(username: String, password: String): User? = transaction {
         try {
-            val userId = Users.insert {
+            val id = Users.insert {
                 it[Users.username] = username
                 it[Users.password] = password
             } get Users.id
 
-            User(userId, username, password)
+            User(id, username, password)
         } catch (e: ExposedSQLException) {
             null
         }

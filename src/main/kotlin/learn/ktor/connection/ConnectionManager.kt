@@ -1,5 +1,6 @@
 package learn.ktor.connection
 
+import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
@@ -26,6 +27,8 @@ object ConnectionManager {
     }
 
     fun isOnline(user: String): Boolean = sessions[user]?.isActive ?: false
+
+    fun getSession(user: String) = sessions[user]
 
     fun getOnlineUsers(): List<String> = sessions.filterValues { it.isActive }.keys.toList()
 
