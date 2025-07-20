@@ -4,11 +4,12 @@ import learn.ktor.model.User
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class UserRepository {
 
-    fun addUser(username: String, password: String): User? = transaction {
+    suspend fun addUser(username: String, password: String): User? = newSuspendedTransaction {
         try {
             val id = Users.insert {
                 it[Users.username] = username
@@ -21,14 +22,19 @@ class UserRepository {
         }
     }
 
-    fun getByUsername(username: String): User? = transaction {
-        Users.selectAll().where { Users.username eq username }
-            .map {
-                User(it[Users.id], it[Users.username], it[Users.password])
-            }.singleOrNull()
+    suspend fun getByUsername(username: String): User? = newSuspendedTransaction {
+        try {
+
+            Users.selectAll().where { Users.username eq username }
+                .map {
+                    User(it[Users.id], it[Users.username], it[Users.password])
+                }.singleOrNull()
+        } catch (e: ExposedSQLException) {
+            null
+        }
     }
 
-    fun deleteUser(username: String): Boolean = transaction {
+    suspend fun deleteUser(username: String): Boolean = newSuspendedTransaction {
         Users.deleteWhere { Users.username eq username } > 0
     }
 }

@@ -4,10 +4,11 @@ import learn.ktor.model.Message
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
 class MessageRepository {
 
-    fun saveMessage(sender: String, recipient: String, content: String): Message? = transaction {
+    suspend fun saveMessage(sender: String, recipient: String, content: String): Message? = newSuspendedTransaction {
         try {
             val timestamp = System.currentTimeMillis()
             val id = Messages.insert {
@@ -23,7 +24,7 @@ class MessageRepository {
         }
     }
 
-    fun getMessagesBetween(user1: String, user2: String): List<Message> = transaction {
+    suspend fun getMessagesBetween(user1: String, user2: String): List<Message> = newSuspendedTransaction {
         Messages.selectAll().where {
             (Messages.sender eq user1 and (Messages.recipient eq user2)) or
                     (Messages.sender eq user2 and (Messages.recipient eq user1))
