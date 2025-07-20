@@ -3,24 +3,21 @@ package learn.ktor.services
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import learn.ktor.config.JwtProperties
-import java.time.Instant
+import java.util.*
 
 class TokenService(private val properties: JwtProperties) {
 
     private val algorithm: Algorithm = Algorithm.HMAC256(properties.secret)
 
-    fun generateToken(user: String): String {
-
-        return JWT.create()
+    fun generateToken(user: String): String = JWT.create()
             .withIssuer(properties.issuer)
             .withAudience(properties.audience)
             .withClaim("user", user)
-            .withExpiresAt(Instant.now().plus(properties.expiration))
+            .withExpiresAt(Date(System.currentTimeMillis() + properties.expiration))
             .sign(algorithm)
-    }
 
-    fun verifyToken(token: String): String? {
-        return try {
+    fun verifyToken(token: String): String? =
+        try {
             JWT.require(algorithm)
                 .withIssuer(properties.issuer)
                 .withAudience(properties.audience)
@@ -32,5 +29,4 @@ class TokenService(private val properties: JwtProperties) {
         } catch (e: Exception) {
             null
         }
-    }
 }

@@ -6,6 +6,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import kotlinx.serialization.json.Json
 import learn.ktor.config.DatabaseFactory
 import learn.ktor.config.JwtProperties
+import learn.ktor.config.getJwtProperties
 import learn.ktor.repositories.MessageRepository
 import learn.ktor.repositories.UserRepository
 import learn.ktor.routes.*
@@ -21,7 +22,7 @@ fun main(args: Array<String>) {
 
 fun Application.module() {
     val config = environment.config
-    val jwtProperties = JwtProperties(config.property("ktor.jwt.secret").getString())
+    val jwtProperties = config.getJwtProperties()
 
     val userRepository = UserRepository()
     val messageRepository = MessageRepository()
