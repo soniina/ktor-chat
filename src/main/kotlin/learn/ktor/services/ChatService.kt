@@ -5,22 +5,24 @@ import learn.ktor.connection.ConnectionManager
 import learn.ktor.model.ChatEvent
 import learn.ktor.repositories.MessageRepository
 
-class ChatService(private val messageRepository: MessageRepository, private val commandHandler: CommandHandler) {
+class ChatService(private val connectionManager: ConnectionManager, val messageRepository: MessageRepository) {
+
+    private val commandHandler = CommandHandler(messageRepository, connectionManager)
 
     private suspend fun notifyUser(user: String, event: ChatEvent) {
-        ConnectionManager.sendTo(user, event)
+        connectionManager.sendTo(user, event)
     }
 
     private suspend fun sendMessage(sender: String, recipient: String, message: String): Boolean {
         messageRepository.saveMessage(sender, recipient, message)
-        return if (ConnectionManager.isOnline(recipient)) {
-            ConnectionManager.sendTo(recipient, ChatEvent.UserMessage(sender, message))
+        return if (connectionManager.isOnline(recipient)) {
+            connectionManager.sendTo(recipient, ChatEvent.UserMessage(sender, message))
             true
         } else false
     }
 
     suspend fun handleConnection(user: String, session: DefaultWebSocketSession) {
-        ConnectionManager.register(user, session)
+        connectionManager.register(user, session)
         notifyUser(user, ChatEvent.SystemMessage("Welcome, $user! You are now connected."))
     }
 
@@ -37,9 +39,7 @@ class ChatService(private val messageRepository: MessageRepository, private val 
         notifyUser(user, event)
 
         if (event is ChatEvent.CloseConnection)
-            ConnectionManager.getSession(user)?.close(CloseReason(CloseReason.Codes.NORMAL, "User left"))
-
-
+            connectionManager.getSession(user)?.close(CloseReason(CloseReason.Codes.NORMAL, "User left"))
     }
 
     private suspend fun handleDirectMessage(user: String, text: String) {
@@ -51,6 +51,10 @@ class ChatService(private val messageRepository: MessageRepository, private val 
 
         val recipient = parts[0].substring(1)
         val message = parts[1]
+        if (message.isBlank()) {
+            notifyUser(user, ChatEvent.ErrorMessage("Message must not be empty"))
+            return
+        }
 
 //        launch {
             if (sendMessage(user, recipient, message)) {
@@ -61,6 +65,6 @@ class ChatService(private val messageRepository: MessageRepository, private val 
 //        }
     }
 
-    suspend fun cleanUp(user: String) = ConnectionManager.unregister(user)
+    suspend fun cleanUp(user: String) = connectionManager.unregister(user)
 
 }

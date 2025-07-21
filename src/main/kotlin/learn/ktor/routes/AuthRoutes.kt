@@ -16,7 +16,6 @@ fun Application.configureAuthRouting(userService: UserService, tokenService: Tok
             val request = call.receive<AuthRequest>()
             val username = request.username
             val password = request.password
-            println("$username:$password")
             if (username.isBlank() || password.isBlank()) {
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse("Username and password required"))
                 return@post

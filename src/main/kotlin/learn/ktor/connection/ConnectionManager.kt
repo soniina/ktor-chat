@@ -1,6 +1,5 @@
 package learn.ktor.connection
 
-import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
@@ -9,7 +8,11 @@ import learn.ktor.config.JsonFormat
 import learn.ktor.model.ChatEvent
 import java.util.concurrent.ConcurrentHashMap
 
-object ConnectionManager {
+interface OnlineUserProvider {
+    fun getOnlineUsers(): List<String>
+}
+
+class ConnectionManager: OnlineUserProvider {
 
     private val sessions = ConcurrentHashMap<String, WebSocketSession>()
     private val mutex = Mutex()
@@ -30,12 +33,11 @@ object ConnectionManager {
 
     fun getSession(user: String) = sessions[user]
 
-    fun getOnlineUsers(): List<String> = sessions.filterValues { it.isActive }.keys.toList()
+    override fun getOnlineUsers(): List<String> = sessions.filterValues { it.isActive }.keys.toList()
 
     suspend fun unregister(user: String) {
         mutex.withLock {
             sessions.remove(user)?.close()
         }
     }
-
 }

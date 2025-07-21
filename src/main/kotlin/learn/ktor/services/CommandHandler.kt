@@ -1,14 +1,14 @@
 package learn.ktor.services
 
-import learn.ktor.connection.ConnectionManager
+import learn.ktor.connection.OnlineUserProvider
 import learn.ktor.model.ChatEvent
 import learn.ktor.repositories.MessageRepository
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-class CommandHandler(private val messageRepository: MessageRepository) {
-    fun handle(user: String, text: String): ChatEvent {
+class CommandHandler(private val messageRepository: MessageRepository, private val onlineUserProvider: OnlineUserProvider) {
+    suspend fun handle(user: String, text: String): ChatEvent {
         val parts = text.trim().split("\\s+".toRegex(), limit = 2)
         val command = parts[0]
         val argument = parts.getOrNull(1)
@@ -20,7 +20,7 @@ class CommandHandler(private val messageRepository: MessageRepository) {
             )
             "/users" -> ChatEvent.CommandResult(
                 "users",
-                "Online users: ${ConnectionManager.getOnlineUsers().joinToString()}"
+                "Online users: ${onlineUserProvider.getOnlineUsers().joinToString()}"
             )
             "/history" -> {
                 if (argument == null) {
