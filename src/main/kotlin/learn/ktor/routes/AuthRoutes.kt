@@ -24,7 +24,6 @@ fun Application.configureAuthRouting(userService: UserService, tokenService: Tok
                 call.respond(HttpStatusCode.Conflict, ErrorResponse("Username already exists"))
                 return@post
             }
-            println("User registered $username")
             call.respond(HttpStatusCode.Created, AuthResponse(tokenService.generateToken(username)))
         }
 

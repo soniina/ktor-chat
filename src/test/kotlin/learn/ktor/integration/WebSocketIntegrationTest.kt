@@ -10,29 +10,22 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.config.*
 import io.ktor.server.testing.*
 import io.ktor.websocket.*
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withTimeout
-import kotlinx.serialization.json.Json
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import learn.ktor.application.module
 import learn.ktor.config.DatabaseFactory
 import learn.ktor.config.JsonFormat
-import learn.ktor.connection.ConnectionManager
 import learn.ktor.model.ChatEvent
 import learn.ktor.model.auth.AuthRequest
-import learn.ktor.repository.Users
+import learn.ktor.repositories.Messages
+import learn.ktor.repositories.Users
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.test.*
 
 
 class WebSocketIntegrationTest {
-
-    @BeforeTest
-    fun setup() = runTest {
-        ConnectionManager.getOnlineUsers().forEach {
-            ConnectionManager.unregister(it)
-        }
-    }
 
     private suspend fun registerAndGetToken(client: HttpClient, username: String, password: String): String? {
         val response = client.post("/register") {
@@ -41,6 +34,13 @@ class WebSocketIntegrationTest {
         }
         val body = response.bodyAsText()
         return JsonFormat.decodeFromString<Map<String, String>>(body)["token"]
+    }
+
+    private suspend fun WebSocketSession.receiveEvents(count: Int = 1): List<ChatEvent> {
+        return (1..count).mapNotNull {
+            val frame = incoming.receive() as? Frame.Text
+            frame?.readText()?.let { JsonFormat.decodeFromString(it) }
+        }
     }
 
     @Test
@@ -54,6 +54,7 @@ class WebSocketIntegrationTest {
             DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
             transaction {
                 Users.deleteAll()
+                Messages.deleteAll()
             }
             module()
         }
@@ -61,33 +62,337 @@ class WebSocketIntegrationTest {
         val client = createClient {
             install(WebSockets)
             install(ContentNegotiation) {
-                json(Json {
-                    prettyPrint = true
-                    ignoreUnknownKeys = true
-                    classDiscriminator = "type"
-                })
+                json(JsonFormat)
             }
         }
 
         val aliceToken = registerAndGetToken(client, "alice", "password")
-        requireNotNull(aliceToken) { "Alice token should not be null" }
+        assertNotNull(aliceToken)
 
         val bobToken = registerAndGetToken(client, "bob", "password")
-        requireNotNull(bobToken) { "Bob token should not be null" }
+        assertNotNull(bobToken)
 
-        val aliceGreeting = "Hello Alice!"
-        client.webSocket("/chat?token=$aliceToken") {
-            val welcome = (incoming.receive() as? Frame.Text)?.readText()
-            assertTrue(welcome!!.contains("Welcome"))
+        coroutineScope {
+            val bobConnected = CompletableDeferred<Unit>()
+            val aliceSentMessage = CompletableDeferred<Unit>()
+            val bobSentMessage = CompletableDeferred<Unit>()
 
-            val bobSession = client.webSocketSession("/chat?token=$bobToken")
-            (bobSession.incoming.receive() as? Frame.Text)?.readText() // welcome bob
-            bobSession.send("@alice $aliceGreeting")
+            val aliceJob = launch {
+                client.webSocket("/chat?token=$aliceToken") {
+                    val welcome = receiveEvents().first()
+                    assertIs<ChatEvent.SystemMessage>(welcome)
+                    assertTrue(welcome.text.contains("Welcome, alice!"))
 
-            withTimeout(5000) {
-                val message = (incoming.receive() as? Frame.Text)?.readText()
-                assertEquals(message!!, JsonFormat.encodeToString(ChatEvent.serializer(), ChatEvent.UserMessage("bob", aliceGreeting)))
+                    bobConnected.await()
+
+                    send("@bob Hello Bob!")
+                    val result = receiveEvents().first()
+                    assertIs<ChatEvent.CommandResult>(result)
+                    assertTrue(result.command == "sent")
+                    aliceSentMessage.complete(Unit)
+
+                    bobSentMessage.await()
+
+                    val message = receiveEvents().first()
+                    assertIs<ChatEvent.UserMessage>(message, "1")
+                    assertEquals("bob", message.sender)
+                    assertEquals("Hi Alice!", message.text)
+
+                }
             }
+
+            val bobJob = launch {
+                client.webSocket("/chat?token=$bobToken") {
+                    val welcome = receiveEvents().first()
+                    assertIs<ChatEvent.SystemMessage>(welcome)
+                    assertTrue(welcome.text.contains("Welcome, bob!"))
+
+                    bobConnected.complete(Unit)
+                    aliceSentMessage.await()
+
+                    val message = receiveEvents().first()
+                    assertIs<ChatEvent.UserMessage>(message, "1")
+                    assertEquals("alice", message.sender)
+                    assertEquals("Hello Bob!", message.text)
+
+                    send("@alice Hi Alice!")
+                    val result = receiveEvents().first()
+                    assertIs<ChatEvent.CommandResult>(result)
+                    assertTrue(result.command == "sent")
+
+                    bobSentMessage.complete(Unit)
+                }
+            }
+
+            aliceJob.join()
+            bobJob.join()
         }
     }
+
+    @Test
+    fun `should handle offline users`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.yaml")
+        }
+
+        application {
+            val config = environment.config
+            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
+            transaction {
+                Users.deleteAll()
+                Messages.deleteAll()
+            }
+            module()
+        }
+
+        val client = createClient {
+            install(WebSockets)
+            install(ContentNegotiation) {
+                json(JsonFormat)
+            }
+        }
+
+        val aliceToken = registerAndGetToken(client, "alice", "password")
+        assertNotNull(aliceToken)
+
+        val bobToken = registerAndGetToken(client, "bob", "password")
+        assertNotNull(bobToken)
+
+        client.webSocket("/chat?token=$aliceToken") {
+            val welcome = receiveEvents().first()
+            assertIs<ChatEvent.SystemMessage>(welcome)
+            assertTrue(welcome.text.contains("Welcome, alice!"))
+
+            send("@bob Are you there?")
+
+            val response = receiveEvents().first()
+            assertIs<ChatEvent.ErrorMessage>(response)
+            assertContains(response.reason, "offline")
+        }
+    }
+
+    @Test
+    fun `should handle commands`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.yaml")
+        }
+
+        application {
+            val config = environment.config
+            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
+            transaction {
+                Users.deleteAll()
+                Messages.deleteAll()
+            }
+            module()
+        }
+
+        val client = createClient {
+            install(WebSockets)
+            install(ContentNegotiation) {
+                json(JsonFormat)
+            }
+        }
+
+        val aliceToken = registerAndGetToken(client, "alice", "password")
+        assertNotNull(aliceToken)
+
+        client.webSocket("/chat?token=$aliceToken") {
+            val welcome = receiveEvents().first()
+            assertIs<ChatEvent.SystemMessage>(welcome)
+            assertTrue(welcome.text.contains("Welcome, alice!"))
+
+            send("/help")
+
+            val response = receiveEvents().first()
+            assertIs<ChatEvent.CommandResult>(response)
+            assertEquals("help", response.command)
+            assertContains(response.result, "Available commands")
+        }
+    }
+
+    @Test
+    fun `should close connection to missing token`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.yaml")
+        }
+
+        application {
+            module()
+        }
+
+        val client = createClient {
+            install(WebSockets)
+        }
+
+        client.webSocket("/chat") {
+            val closeReason = closeReason.await()
+            assertNotNull(closeReason)
+            assertEquals(CloseReason.Codes.VIOLATED_POLICY.code, closeReason.code)
+            assertEquals("Missing token", closeReason.message)
+        }
+    }
+
+    @Test
+    fun `should close connection to invalid token`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.yaml")
+        }
+
+        application {
+            module()
+        }
+
+        val client = createClient {
+            install(WebSockets)
+        }
+
+        client.webSocket("/chat?token=invalid_token") {
+            val closeReason = closeReason.await()
+            assertNotNull(closeReason)
+            assertEquals(CloseReason.Codes.VIOLATED_POLICY.code, closeReason.code)
+            assertEquals("Invalid token", closeReason.message)
+        }
+    }
+
+    @Test
+    fun `should retrieve message history`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.yaml")
+        }
+
+        application {
+            val config = environment.config
+            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
+            transaction {
+                Users.deleteAll()
+                Messages.deleteAll()
+            }
+            module()
+        }
+
+        val client = createClient {
+            install(WebSockets)
+            install(ContentNegotiation) {
+                json(JsonFormat)
+            }
+        }
+
+        val aliceToken = registerAndGetToken(client, "alice", "password")
+        assertNotNull(aliceToken)
+
+        val bobToken = registerAndGetToken(client, "bob", "password")
+        assertNotNull(bobToken)
+
+        client.webSocket("/chat?token=$bobToken") {
+            client.webSocket("/chat?token=$aliceToken") {
+                val welcome = receiveEvents().first()
+                assertIs<ChatEvent.SystemMessage>(welcome)
+                assertTrue(welcome.text.contains("Welcome, alice!"))
+
+                send("@bob first message")
+                send("@bob second message")
+                send("@bob third message")
+
+                val response = receiveEvents(3).first()
+                assertIs<ChatEvent.CommandResult>(response)
+                assertEquals("sent", response.command)
+
+                send("/history bob")
+                val history = receiveEvents().first()
+                assertIs<ChatEvent.CommandResult>(history)
+                assertEquals("history", history.command)
+
+                val messages = history.result.split("\n")
+                assertEquals(3, messages.size)
+                assertContains(messages.first(), "first message")
+                assertContains(messages.last(), "third message")
+            }
+        }
+
+    }
+
+    @Test
+    fun `should list online users`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.yaml")
+        }
+
+        application {
+            val config = environment.config
+            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
+            transaction {
+                Users.deleteAll()
+                Messages.deleteAll()
+            }
+            module()
+        }
+
+        val client = createClient {
+            install(WebSockets)
+            install(ContentNegotiation) {
+                json(JsonFormat)
+            }
+        }
+
+        val aliceToken = registerAndGetToken(client, "alice", "password")
+        assertNotNull(aliceToken)
+
+        val bobToken = registerAndGetToken(client, "bob", "password")
+        assertNotNull(bobToken)
+
+        client.webSocket("/chat?token=$aliceToken") {
+            receiveEvents() // welcome
+
+            client.webSocket("/chat?token=$bobToken") {
+                receiveEvents() // welcome Bob
+            }
+
+            send("/users")
+            val response = receiveEvents().first()
+            assertIs<ChatEvent.CommandResult>(response)
+            assertEquals("users", response.command)
+            assertContains(response.result, "alice")
+            assertFalse(response.result.contains("bob"))
+        }
+    }
+
+    @Test
+    fun `should close connection on bye command`() = testApplication {
+        environment {
+            config = ApplicationConfig("application-test.yaml")
+        }
+
+        application {
+            val config = environment.config
+            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
+            transaction {
+                Users.deleteAll()
+                Messages.deleteAll()
+            }
+            module()
+        }
+
+        val client = createClient {
+            install(WebSockets)
+            install(ContentNegotiation) {
+                json(JsonFormat)
+            }
+        }
+
+        val aliceToken = registerAndGetToken(client, "alice", "password")
+        assertNotNull(aliceToken)
+
+        client.webSocket("/chat?token=$aliceToken") {
+            receiveEvents() // welcome
+
+            send("/bye")
+
+            val closeReason = closeReason.await()
+            assertNotNull(closeReason)
+            assertEquals(CloseReason.Codes.NORMAL.code, closeReason.code)
+            assertEquals("User left", closeReason.message)
+        }
+    }
+
 }

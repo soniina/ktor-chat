@@ -7,7 +7,6 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.server.config.*
 import io.ktor.server.testing.*
-import kotlinx.serialization.json.Json
 import learn.ktor.application.module
 import learn.ktor.config.DatabaseFactory
 import learn.ktor.config.JsonFormat
@@ -36,11 +35,7 @@ class AuthIntegrationTest {
 
         val client = createClient {
             install(ContentNegotiation) {
-                json(Json {
-                    prettyPrint = true
-                    ignoreUnknownKeys = true
-                    classDiscriminator = "type"
-                })
+                json(JsonFormat)
             }
         }
 
@@ -60,7 +55,7 @@ class AuthIntegrationTest {
 
         val loginResponse = client.post("/login") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(request))
+            setBody(JsonFormat.encodeToString(request))
         }
         assertEquals(HttpStatusCode.OK, loginResponse.status)
 
@@ -85,11 +80,7 @@ class AuthIntegrationTest {
 
         val client = createClient {
             install(ContentNegotiation) {
-                json(Json {
-                    prettyPrint = true
-                    ignoreUnknownKeys = true
-                    classDiscriminator = "type"
-                })
+                json(JsonFormat)
             }
         }
 
@@ -122,11 +113,7 @@ class AuthIntegrationTest {
 
         val client = createClient {
             install(ContentNegotiation) {
-                json(Json {
-                    prettyPrint = true
-                    ignoreUnknownKeys = true
-                    classDiscriminator = "type"
-                })
+                json(JsonFormat)
             }
         }
 
@@ -159,11 +146,7 @@ class AuthIntegrationTest {
         }
         val client = createClient {
             install(ContentNegotiation) {
-                json(Json {
-                    prettyPrint = true
-                    ignoreUnknownKeys = true
-                    classDiscriminator = "type"
-                })
+                json(JsonFormat)
             }
         }
 
@@ -201,11 +184,7 @@ class AuthIntegrationTest {
 
         val client = createClient {
             install(ContentNegotiation) {
-                json(Json {
-                    prettyPrint = true
-                    ignoreUnknownKeys = true
-                    classDiscriminator = "type"
-                })
+                json(JsonFormat)
             }
         }
 
