@@ -12,7 +12,7 @@ import learn.ktor.application.module
 import learn.ktor.config.DatabaseFactory
 import learn.ktor.config.JsonFormat
 import learn.ktor.model.auth.AuthRequest
-import learn.ktor.repository.Users
+import learn.ktor.repositories.Users
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.test.*
@@ -55,7 +55,6 @@ class AuthIntegrationTest {
 
         val tokenFromRegister = JsonFormat.decodeFromString<Map<String, String>>(registerResponse.bodyAsText())["token"]
 
-        println("Register token: $tokenFromRegister")
         assertNotNull(tokenFromRegister)
 
 
@@ -66,7 +65,6 @@ class AuthIntegrationTest {
         assertEquals(HttpStatusCode.OK, loginResponse.status)
 
         val tokenFromLogin = JsonFormat.decodeFromString<Map<String, String>>(loginResponse.bodyAsText())["token"]
-        println("Login token: $tokenFromLogin")
         assertNotNull(tokenFromLogin)
     }
 

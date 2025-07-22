@@ -2,7 +2,7 @@ package learn.ktor.services
 
 import kotlinx.coroutines.test.runTest
 import learn.ktor.config.DatabaseFactory
-import learn.ktor.repository.UserRepository
+import learn.ktor.repositories.UserRepository
 import kotlin.test.*
 
 class UserServiceTest {

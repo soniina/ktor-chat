@@ -5,17 +5,15 @@ import learn.ktor.connection.ConnectionManager
 import learn.ktor.model.ChatEvent
 import learn.ktor.repositories.MessageRepository
 
-class ChatService(private val connectionManager: ConnectionManager, val messageRepository: MessageRepository) {
-
-    private val commandHandler = CommandHandler(messageRepository, connectionManager)
+class ChatService(private val connectionManager: ConnectionManager, private val messageRepository: MessageRepository, private val commandHandler: CommandHandler) {
 
     private suspend fun notifyUser(user: String, event: ChatEvent) {
         connectionManager.sendTo(user, event)
     }
 
     private suspend fun sendMessage(sender: String, recipient: String, message: String): Boolean {
-        messageRepository.saveMessage(sender, recipient, message)
         return if (connectionManager.isOnline(recipient)) {
+            messageRepository.saveMessage(sender, recipient, message)
             connectionManager.sendTo(recipient, ChatEvent.UserMessage(sender, message))
             true
         } else false
@@ -56,13 +54,11 @@ class ChatService(private val connectionManager: ConnectionManager, val messageR
             return
         }
 
-//        launch {
-            if (sendMessage(user, recipient, message)) {
-                notifyUser(user, ChatEvent.CommandResult("sent", "to $recipient"))
-            } else {
-                notifyUser(user, ChatEvent.ErrorMessage("User $recipient offline"))
-            }
-//        }
+        if (sendMessage(user, recipient, message)) {
+            notifyUser(user, ChatEvent.CommandResult("sent", "to $recipient"))
+        } else {
+            notifyUser(user, ChatEvent.ErrorMessage("User $recipient offline"))
+        }
     }
 
     suspend fun cleanUp(user: String) = connectionManager.unregister(user)

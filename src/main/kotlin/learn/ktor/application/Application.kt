@@ -13,6 +13,7 @@ import learn.ktor.routes.*
 import learn.ktor.routes.configureAuthRouting
 import learn.ktor.services.TokenService
 import learn.ktor.services.ChatService
+import learn.ktor.services.CommandHandler
 import learn.ktor.services.UserService
 
 fun main(args: Array<String>) {
@@ -28,7 +29,8 @@ fun Application.module() {
     val messageRepository = MessageRepository()
     val userService = UserService(userRepository)
     val tokenService = TokenService(jwtProperties)
-    val chatService = ChatService(connectionManager, messageRepository)
+    val commandHandler = CommandHandler(messageRepository, connectionManager)
+    val chatService = ChatService(connectionManager, messageRepository, commandHandler)
 
 
     install(ContentNegotiation) {

@@ -22,7 +22,6 @@ class ConnectionManager: OnlineUserProvider {
             sessions[user]?.takeIf { it.isActive }?.close()
             sessions[user] = session
         }
-        println("Registered $user")
     }
 
     suspend fun sendTo(user: String, event: ChatEvent) {
