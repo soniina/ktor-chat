@@ -8,6 +8,7 @@ object Messages: Table() {
     val recipient = varchar("recipient", 50)
     val content = text("content")
     val timestamp = long("timestamp")
+    val delivered = bool("delivered").default(false)
 
     override val primaryKey = PrimaryKey(id)
 }

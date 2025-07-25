@@ -5,5 +5,6 @@ data class Message (
     val sender: String,
     val recipient: String,
     val content: String,
-    val timestamp: Long
+    val timestamp: Long,
+    val delivered: Boolean = false
 )
