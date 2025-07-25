@@ -42,4 +42,42 @@ class MessageRepositoryTest {
         val messages = messageRepository.getMessagesBetween("alice", "bob")
         assertTrue(messages.isEmpty())
     }
+
+    @Test
+    fun `should get undelivered messages for user`()  = runTest {
+        val message1 = messageRepository.saveMessage("alice", "bob", "First")
+        val message2 = messageRepository.saveMessage("alice", "bob", "Second")
+        val message3 = messageRepository.saveMessage("alice", "bob", "Third")
+
+        messageRepository.markAsDelivered(message1.id)
+
+        val undelivered = messageRepository.getUndeliveredMessagesFor("bob")
+
+        assertEquals(2, undelivered.size)
+        assertEquals(message2.content, undelivered.first().content)
+        assertEquals(message3.content, undelivered.last().content)
+    }
+
+    @Test
+    fun `should mark message as delivered`() = runTest {
+        val message = messageRepository.saveMessage("alice", "bob", "Hello!")
+
+        val before = messageRepository.getUndeliveredMessagesFor("bob")
+        assertTrue(before.any { it.id == message.id })
+
+        messageRepository.markAsDelivered(message.id)
+
+        val after = messageRepository.getUndeliveredMessagesFor("bob")
+        assertFalse(after.any { it.id == message.id })
+    }
+
+    @Test
+    fun `should return empty list if no undelivered messages`() = runTest {
+        messageRepository.saveMessage("alice", "bob", "Delivered").also {
+            messageRepository.markAsDelivered(it.id)
+        }
+
+        val undelivered = messageRepository.getUndeliveredMessagesFor("bob")
+        assertTrue(undelivered.isEmpty())
+    }
 }
