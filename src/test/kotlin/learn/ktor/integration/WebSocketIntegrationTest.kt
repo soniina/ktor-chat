@@ -130,7 +130,7 @@ class WebSocketIntegrationTest {
     }
 
     @Test
-    fun `should handle offline users`() = testApplication {
+    fun `should queue message for offline user and deliver on reconnect`() = testApplication {
         environment {
             config = ApplicationConfig("application-test.yaml")
         }
@@ -166,9 +166,23 @@ class WebSocketIntegrationTest {
             send("@bob Are you there?")
 
             val response = receiveEvents().first()
-            assertIs<ChatEvent.ErrorMessage>(response)
-            assertContains(response.reason, "offline")
+            assertIs<ChatEvent.CommandResult>(response)
+            assertEquals("queued", response.command)
+            assertContains("to bob (offline — will be delivered later)", response.result)
         }
+
+        client.webSocket("/chat?token=$bobToken") {
+            val welcome = receiveEvents().first()
+            assertIs<ChatEvent.SystemMessage>(welcome)
+            assertTrue(welcome.text.contains("Welcome, bob!"))
+
+            val undeliveredMessages = receiveEvents()
+            assertEquals(1, undeliveredMessages.size)
+            val undeliveredMessage = undeliveredMessages.first()
+            assertIs<ChatEvent.UserMessage>(undeliveredMessage)
+            assertEquals("Are you there?", undeliveredMessage.text)
+        }
+
     }
 
     @Test
