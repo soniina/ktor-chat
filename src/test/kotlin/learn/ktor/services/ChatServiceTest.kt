@@ -29,18 +29,26 @@ class ChatServiceTest {
     lateinit var chatService: ChatService
 
     @Test
-    fun `should register user and send welcome message`() = runTest {
+    fun `should register user, send welcome message and receive undelivered messages`() = runTest {
         val user = "user"
+        val sender = "sender"
         val session = mockk<DefaultWebSocketSession>()
 
         coEvery { connectionManager.register(user, session) } just Runs
         coEvery { connectionManager.sendTo(user, any()) } just Runs
+        coEvery { connectionManager.isOnline(user) } returns true
+        coEvery { messageRepository.getUndeliveredMessagesFor(user) } returns listOf(Message(1, sender, user, "Hi!", System.currentTimeMillis()))
+        coEvery { messageRepository.markAsDelivered(any()) } just Runs
 
         chatService.handleConnection(user, session)
 
         coVerify {
             connectionManager.register(user, session)
             connectionManager.sendTo(user, any<ChatEvent.SystemMessage>())
+            messageRepository.getUndeliveredMessagesFor(user)
+            connectionManager.isOnline(user)
+            connectionManager.sendTo(user, any<ChatEvent.UserMessage>())
+            messageRepository.markAsDelivered(1)
         }
     }
 
@@ -71,7 +79,7 @@ class ChatServiceTest {
         val message = "Hello there!"
 
         coEvery { messageRepository.saveMessage(sender, recipient, message) } returns
-                Message(1, sender, recipient, message, 0)
+                Message(1, sender, recipient, message, System.currentTimeMillis())
         coEvery { connectionManager.isOnline(recipient) } returns true
         coEvery { connectionManager.sendTo(sender, any()) } just Runs
         coEvery { connectionManager.sendTo(recipient, any()) } just Runs
@@ -79,8 +87,8 @@ class ChatServiceTest {
         chatService.handleMessage(sender, "@$recipient $message")
 
         coVerifyOrder {
-            connectionManager.isOnline(recipient)
             messageRepository.saveMessage("sender", "recipient", message)
+            connectionManager.isOnline(recipient)
             connectionManager.sendTo(recipient, ChatEvent.UserMessage(sender, message))
             connectionManager.sendTo(sender, ChatEvent.CommandResult("sent", "to $recipient"))
         }
@@ -121,7 +129,6 @@ class ChatServiceTest {
         }
     }
 
-
     @Test
     fun `should close session on bye command`() = runTest {
         val user = "user"
@@ -142,8 +149,6 @@ class ChatServiceTest {
         }
     }
 
-
-
     @Test
     fun `should unregister user`() = runTest {
         val user = "user"
@@ -155,21 +160,23 @@ class ChatServiceTest {
         coVerify(exactly = 1) { connectionManager.unregister(user) }
     }
 
-
     @Test
-    fun `should notify sender when recipient offline`() = runTest {
+    fun `should store message and notify sender when recipient is offline`() = runTest {
         val sender = "sender"
         val recipient = "offlineUser"
-        val message = "@$recipient Hello"
+        val content = "Hello!"
 
+        coEvery { messageRepository.saveMessage(sender, recipient, content) } returns
+                Message(1, sender, recipient, content, System.currentTimeMillis())
         coEvery { connectionManager.isOnline(recipient) } returns false
         coEvery { connectionManager.sendTo(sender, any()) } just Runs
 
-        chatService.handleMessage(sender, message)
+        chatService.handleMessage(sender, "@$recipient $content")
 
         coVerifyOrder {
+            messageRepository.saveMessage(sender, recipient, content)
             connectionManager.isOnline(recipient)
-            connectionManager.sendTo(sender, ChatEvent.ErrorMessage("User $recipient offline"))
+            connectionManager.sendTo(sender, ChatEvent.CommandResult("queued", "to $recipient (offline — will be delivered later)"))
         }
     }
 }
