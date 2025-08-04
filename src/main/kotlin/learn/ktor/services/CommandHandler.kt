@@ -3,11 +3,12 @@ package learn.ktor.services
 import learn.ktor.connection.OnlineUserProvider
 import learn.ktor.model.ChatEvent
 import learn.ktor.repositories.MessageRepository
+import learn.ktor.repositories.UserRepository
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-class CommandHandler(private val messageRepository: MessageRepository, private val onlineUserProvider: OnlineUserProvider) {
+class CommandHandler(private val messageRepository: MessageRepository, private val userRepository: UserRepository, private val onlineUserProvider: OnlineUserProvider) {
     suspend fun handle(user: String, text: String): ChatEvent {
         val parts = text.trim().split("\\s+".toRegex(), limit = 2)
         val command = parts[0]
@@ -26,12 +27,22 @@ class CommandHandler(private val messageRepository: MessageRepository, private v
                 if (argument == null) {
                     ChatEvent.ErrorMessage("Usage: /history <username>")
                 } else {
-                    val history = messageRepository.getMessagesBetween(user, argument)
+
+                    val userId = userRepository.getIdByUsername(user)
+                        ?: return ChatEvent.ErrorMessage("Internal error: user not found")
+
+                    val targetUserId = userRepository.getIdByUsername(argument)
+                        ?: return ChatEvent.ErrorMessage("Unknown user: $argument")
+
+                    val history = messageRepository.getMessagesBetween(userId, targetUserId)
+
                     if (history.isEmpty()) {
                         ChatEvent.CommandResult("history", "No messages with $argument")
                     } else {
-                        val formatted = history.joinToString("\n") { "[${formatTimestamp(it.timestamp)}] " +
-                                "${it.sender}: ${it.content}" }
+                        val formatted = history.joinToString("\n") { msg ->
+                            val senderName = if (msg.senderId == targetUserId) argument else user
+                            "[${formatTimestamp(msg.timestamp)}] $senderName: ${msg.content}"
+                        }
                         ChatEvent.CommandResult("history", formatted)
                     }
                 }

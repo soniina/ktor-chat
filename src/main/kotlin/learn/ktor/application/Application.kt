@@ -29,8 +29,8 @@ fun Application.module() {
     val messageRepository = MessageRepository()
     val userService = UserService(userRepository)
     val tokenService = TokenService(jwtProperties)
-    val commandHandler = CommandHandler(messageRepository, connectionManager)
-    val chatService = ChatService(connectionManager, messageRepository, commandHandler)
+    val commandHandler = CommandHandler(messageRepository, userRepository, connectionManager)
+    val chatService = ChatService(connectionManager, messageRepository, commandHandler, userRepository)
 
 
     install(ContentNegotiation) {
