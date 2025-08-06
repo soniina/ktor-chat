@@ -9,7 +9,9 @@ import kotlinx.coroutines.test.runTest
 import learn.ktor.connection.ConnectionManager
 import learn.ktor.model.ChatEvent
 import learn.ktor.model.Message
+import learn.ktor.model.User
 import learn.ktor.repositories.MessageRepository
+import learn.ktor.repositories.UserRepository
 import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.Test
 
@@ -23,6 +25,9 @@ class ChatServiceTest {
     lateinit var messageRepository: MessageRepository
 
     @MockK
+    lateinit var userRepository: UserRepository
+
+    @MockK
     lateinit var commandHandler: CommandHandler
 
     @InjectMockKs
@@ -30,25 +35,48 @@ class ChatServiceTest {
 
     @Test
     fun `should register user, send welcome message and receive undelivered messages`() = runTest {
-        val user = "user"
-        val sender = "sender"
+        val user = User(1, "user", "password")
+        val sender = User(2, "sender", "password")
         val session = mockk<DefaultWebSocketSession>()
 
-        coEvery { connectionManager.register(user, session) } just Runs
-        coEvery { connectionManager.sendTo(user, any()) } just Runs
-        coEvery { connectionManager.isOnline(user) } returns true
-        coEvery { messageRepository.getUndeliveredMessagesFor(user) } returns listOf(Message(1, sender, user, "Hi!", System.currentTimeMillis()))
+        coEvery { connectionManager.register(user.username, session) } just Runs
+        coEvery { userRepository.getIdByUsername(user.username) } returns user.id
+        coEvery { connectionManager.sendTo(user.username, any()) } just Runs
+        coEvery { connectionManager.isOnline(user.username) } returns true
+        coEvery { messageRepository.getUndeliveredMessagesFor(user.id) } returns listOf(Message(1, sender.id, user.id, "Hi!", System.currentTimeMillis()))
+        coEvery { userRepository.getUsernameById(sender.id) } returns sender.username
         coEvery { messageRepository.markAsDelivered(any()) } just Runs
 
-        chatService.handleConnection(user, session)
+        chatService.handleConnection(user.username, session)
 
         coVerify {
-            connectionManager.register(user, session)
-            connectionManager.sendTo(user, any<ChatEvent.SystemMessage>())
-            messageRepository.getUndeliveredMessagesFor(user)
-            connectionManager.isOnline(user)
-            connectionManager.sendTo(user, any<ChatEvent.UserMessage>())
+            connectionManager.register(user.username, session)
+            userRepository.getIdByUsername(user.username)
+            connectionManager.sendTo(user.username, any<ChatEvent.SystemMessage>())
+            messageRepository.getUndeliveredMessagesFor(user.id)
+            connectionManager.isOnline(user.username)
+            connectionManager.sendTo(user.username, any<ChatEvent.UserMessage>())
             messageRepository.markAsDelivered(1)
+        }
+    }
+
+    @Test
+    fun `should disconnect unfounded in repository user`() = runTest {
+        val username = "user"
+        val session = mockk<DefaultWebSocketSession>()
+
+        coEvery { connectionManager.register(username, session) } just Runs
+        coEvery { userRepository.getIdByUsername(username) } returns null
+        coEvery { connectionManager.sendTo(username, any()) } just Runs
+        coEvery { connectionManager.unregister(username) } just Runs
+
+        chatService.handleConnection(username, session)
+
+        coVerify {
+            connectionManager.register(username, session)
+            userRepository.getIdByUsername(username)
+            connectionManager.sendTo(username, ChatEvent.ErrorMessage("Internal error: user not found. Please try to reconnect."))
+            connectionManager.unregister(username)
         }
     }
 
@@ -74,37 +102,87 @@ class ChatServiceTest {
 
     @Test
     fun `should handle direct message`() = runTest {
-        val sender = "sender"
-        val recipient = "recipient"
+        val sender = User(1, "sender", "password")
+        val recipient = User(2, "recipient", "password")
         val message = "Hello there!"
 
-        coEvery { messageRepository.saveMessage(sender, recipient, message) } returns
-                Message(1, sender, recipient, message, System.currentTimeMillis())
-        coEvery { connectionManager.isOnline(recipient) } returns true
-        coEvery { connectionManager.sendTo(sender, any()) } just Runs
-        coEvery { connectionManager.sendTo(recipient, any()) } just Runs
+        coEvery { userRepository.getIdByUsername(sender.username) } returns sender.id
+        coEvery { userRepository.getIdByUsername(recipient.username) } returns recipient.id
+        coEvery { messageRepository.saveMessage(sender.id, recipient.id, message) } returns
+                Message(1, sender.id, recipient.id, message, System.currentTimeMillis())
+        coEvery { connectionManager.isOnline(recipient.username) } returns true
+        coEvery { connectionManager.sendTo(sender.username, any()) } just Runs
+        coEvery { connectionManager.sendTo(recipient.username, any()) } just Runs
 
-        chatService.handleMessage(sender, "@$recipient $message")
+        chatService.handleMessage(sender.username, "@${recipient.username} $message")
 
         coVerifyOrder {
-            messageRepository.saveMessage("sender", "recipient", message)
-            connectionManager.isOnline(recipient)
-            connectionManager.sendTo(recipient, ChatEvent.UserMessage(sender, message))
-            connectionManager.sendTo(sender, ChatEvent.CommandResult("sent", "to $recipient"))
+            userRepository.getIdByUsername(sender.username)
+            userRepository.getIdByUsername(recipient.username)
+            messageRepository.saveMessage(sender.id, recipient.id, message)
+            connectionManager.isOnline(recipient.username)
+            connectionManager.sendTo(recipient.username, ChatEvent.UserMessage(sender.username, message))
+            connectionManager.sendTo(sender.username, ChatEvent.CommandResult("sent", "to ${recipient.username}"))
         }
     }
 
     @Test
-    fun `should return error for unrecognized input`() = runTest {
-        val user = "user"
-        val message = "invalid message"
+    fun `should store message and notify sender when recipient is offline`() = runTest {
+        val sender = User(1, "sender", "password")
+        val recipient = User(2, "offline_recipient", "password")
+        val message = "Hello!"
 
-        coEvery { connectionManager.sendTo(user, any()) } just Runs
+        coEvery { userRepository.getIdByUsername(sender.username) } returns sender.id
+        coEvery { userRepository.getIdByUsername(recipient.username) } returns recipient.id
+        coEvery { messageRepository.saveMessage(sender.id, recipient.id, message) } returns
+                Message(1, sender.id, recipient.id, message, System.currentTimeMillis())
+        coEvery { connectionManager.isOnline(recipient.username) } returns false
+        coEvery { connectionManager.sendTo(sender.username, any()) } just Runs
 
-        chatService.handleMessage(user, message)
+        chatService.handleMessage(sender.username, "@${recipient.username} $message")
 
-        coVerify {
-            connectionManager.sendTo(user, ChatEvent.ErrorMessage("Unrecognized input"))
+        coVerifyOrder {
+            userRepository.getIdByUsername(sender.username)
+            userRepository.getIdByUsername(recipient.username)
+            messageRepository.saveMessage(sender.id, recipient.id, message)
+            connectionManager.isOnline(recipient.username)
+            connectionManager.sendTo(sender.username, ChatEvent.CommandResult("queued", "to ${recipient.username} (offline — will be delivered later)"))
+        }
+    }
+
+    @Test
+    fun `should return internal error when invoking user not found in repository`() = runTest {
+        val username = "user"
+        val message = "Hi!"
+
+        coEvery { userRepository.getIdByUsername(username) } returns null
+        coEvery { connectionManager.sendTo(username, any()) } just Runs
+
+        chatService.handleMessage(username, "@someone $message")
+
+        coVerifyOrder {
+            userRepository.getIdByUsername(username)
+            connectionManager.sendTo(username, ChatEvent.ErrorMessage("Internal error: user not found"))
+        }
+
+    }
+
+    @Test
+    fun `should return error when recipient user not found`() = runTest {
+        val sender = User(1, "sender", "password")
+        val recipient = "recipient"
+        val message = "Hello!"
+
+        coEvery { userRepository.getIdByUsername(sender.username) } returns sender.id
+        coEvery { userRepository.getIdByUsername(recipient) } returns null
+        coEvery { connectionManager.sendTo(sender.username, any()) } just Runs
+
+        chatService.handleMessage(sender.username, "@$recipient $message")
+
+        coVerifyOrder {
+            userRepository.getIdByUsername(sender.username)
+            userRepository.getIdByUsername(recipient)
+            connectionManager.sendTo(sender.username, ChatEvent.ErrorMessage("Unknown user: $recipient"))
         }
     }
 
@@ -161,22 +239,16 @@ class ChatServiceTest {
     }
 
     @Test
-    fun `should store message and notify sender when recipient is offline`() = runTest {
-        val sender = "sender"
-        val recipient = "offlineUser"
-        val content = "Hello!"
+    fun `should return error for unrecognized input`() = runTest {
+        val user = "user"
+        val message = "invalid message"
 
-        coEvery { messageRepository.saveMessage(sender, recipient, content) } returns
-                Message(1, sender, recipient, content, System.currentTimeMillis())
-        coEvery { connectionManager.isOnline(recipient) } returns false
-        coEvery { connectionManager.sendTo(sender, any()) } just Runs
+        coEvery { connectionManager.sendTo(user, any()) } just Runs
 
-        chatService.handleMessage(sender, "@$recipient $content")
+        chatService.handleMessage(user, message)
 
-        coVerifyOrder {
-            messageRepository.saveMessage(sender, recipient, content)
-            connectionManager.isOnline(recipient)
-            connectionManager.sendTo(sender, ChatEvent.CommandResult("queued", "to $recipient (offline — will be delivered later)"))
+        coVerify {
+            connectionManager.sendTo(user, ChatEvent.ErrorMessage("Unrecognized input"))
         }
     }
 }

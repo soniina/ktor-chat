@@ -9,8 +9,8 @@ import learn.ktor.repositories.UserRepository
 class ChatService(private val connectionManager: ConnectionManager, private val messageRepository: MessageRepository,
                   private val commandHandler: CommandHandler, private val userRepository: UserRepository) {
 
-    private suspend fun notifyUser(user: String, event: ChatEvent) {
-        connectionManager.sendTo(user, event)
+    private suspend fun notifyUser(username: String, event: ChatEvent) {
+        connectionManager.sendTo(username, event)
     }
 
     private suspend fun sendMessage(sender: String, recipient: String, messageContent: String): Boolean {
@@ -25,7 +25,12 @@ class ChatService(private val connectionManager: ConnectionManager, private val 
 
         notifyUser(username, ChatEvent.SystemMessage("Welcome, $username! You are now connected."))
 
-        val userId = userRepository.getIdByUsername(username) ?: return notifyUser(username, ChatEvent.ErrorMessage("Internal error: user not found"))
+        val userId = userRepository.getIdByUsername(username)
+        if (userId == null) {
+            notifyUser(username, ChatEvent.ErrorMessage("Internal error: user not found. Please try to reconnect."))
+            cleanUp(username)
+            return
+        }
 
         val undeliveredMessages = messageRepository.getUndeliveredMessagesFor(userId)
         undeliveredMessages.forEach {
@@ -33,20 +38,20 @@ class ChatService(private val connectionManager: ConnectionManager, private val 
         }
     }
 
-    suspend fun handleMessage(user: String, message: String) {
+    suspend fun handleMessage(username: String, message: String) {
         when {
-            message.startsWith("/") -> handleCommand(user, message)
-            message.startsWith("@") -> handleDirectMessage(user, message)
-            else -> notifyUser(user, ChatEvent.ErrorMessage("Unrecognized input"))
+            message.startsWith("/") -> handleCommand(username, message)
+            message.startsWith("@") -> handleDirectMessage(username, message)
+            else -> notifyUser(username, ChatEvent.ErrorMessage("Unrecognized input"))
         }
     }
 
-    private suspend fun handleCommand(user: String, text: String) {
-        val event = commandHandler.handle(user, text)
-        notifyUser(user, event)
+    private suspend fun handleCommand(username: String, text: String) {
+        val event = commandHandler.handle(username, text)
+        notifyUser(username, event)
 
         if (event is ChatEvent.CloseConnection)
-            connectionManager.getSession(user)?.close(CloseReason(CloseReason.Codes.NORMAL, "User left"))
+            connectionManager.getSession(username)?.close(CloseReason(CloseReason.Codes.NORMAL, "User left"))
     }
 
     private suspend fun handleDirectMessage(username: String, text: String) {
@@ -86,6 +91,6 @@ class ChatService(private val connectionManager: ConnectionManager, private val 
         })
     }
 
-    suspend fun cleanUp(user: String) = connectionManager.unregister(user)
+    suspend fun cleanUp(username: String) = connectionManager.unregister(username)
 
 }
