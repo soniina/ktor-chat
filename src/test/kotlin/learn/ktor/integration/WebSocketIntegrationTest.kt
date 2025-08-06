@@ -53,8 +53,8 @@ class WebSocketIntegrationTest {
             val config = environment.config
             DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
             transaction {
-                Users.deleteAll()
                 Messages.deleteAll()
+                Users.deleteAll()
             }
             module()
         }
@@ -139,8 +139,8 @@ class WebSocketIntegrationTest {
             val config = environment.config
             DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
             transaction {
-                Users.deleteAll()
                 Messages.deleteAll()
+                Users.deleteAll()
             }
             module()
         }
@@ -195,8 +195,8 @@ class WebSocketIntegrationTest {
             val config = environment.config
             DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
             transaction {
-                Users.deleteAll()
                 Messages.deleteAll()
+                Users.deleteAll()
             }
             module()
         }
@@ -279,8 +279,8 @@ class WebSocketIntegrationTest {
             val config = environment.config
             DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
             transaction {
-                Users.deleteAll()
                 Messages.deleteAll()
+                Users.deleteAll()
             }
             module()
         }
@@ -336,8 +336,8 @@ class WebSocketIntegrationTest {
             val config = environment.config
             DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
             transaction {
-                Users.deleteAll()
                 Messages.deleteAll()
+                Users.deleteAll()
             }
             module()
         }
@@ -359,7 +359,7 @@ class WebSocketIntegrationTest {
             receiveEvents() // welcome
 
             client.webSocket("/chat?token=$bobToken") {
-                receiveEvents() // welcome Bob
+                receiveEvents() // welcome, Bob
             }
 
             send("/users")
@@ -381,8 +381,8 @@ class WebSocketIntegrationTest {
             val config = environment.config
             DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
             transaction {
-                Users.deleteAll()
                 Messages.deleteAll()
+                Users.deleteAll()
             }
             module()
         }
