@@ -23,7 +23,7 @@ object DatabaseFactory {
         driverClassName = "org.postgresql.Driver"
         username = appConfig.property("ktor.db.user").getString()
         password = appConfig.property("ktor.db.password").getString()
-        maximumPoolSize = 10
+        maximumPoolSize = appConfig.property("ktor.db.maxPoolSize").getString().toInt()
         isAutoCommit = false
         transactionIsolation = "TRANSACTION_REPEATABLE_READ"
     }
