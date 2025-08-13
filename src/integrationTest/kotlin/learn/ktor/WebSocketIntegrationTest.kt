@@ -1,4 +1,4 @@
-package learn.ktor.integration
+package learn.ktor
 
 import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -22,10 +22,34 @@ import learn.ktor.repositories.Messages
 import learn.ktor.repositories.Users
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.TestInstance
 import kotlin.test.*
 
-
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class WebSocketIntegrationTest {
+
+    private val configFileName = "application-test.yaml"
+
+    private var isDbConnected = false
+
+    @BeforeAll
+    fun setupAll() {
+        if (!isDbConnected) {
+            val config = DatabaseFactory.postgresConfig(ApplicationConfig(configFileName))
+            DatabaseFactory.connect(config)
+            isDbConnected = true
+        }
+    }
+
+    @BeforeEach
+    fun cleanupDb() {
+        transaction {
+            Messages.deleteAll()
+            Users.deleteAll()
+        }
+    }
 
     private suspend fun registerAndGetToken(client: HttpClient, username: String, password: String): String? {
         val response = client.post("/register") {
@@ -46,16 +70,10 @@ class WebSocketIntegrationTest {
     @Test
     fun `should connect and exchange messages`() = testApplication {
         environment {
-            config = ApplicationConfig("application-test.yaml")
+            config = ApplicationConfig(configFileName)
         }
 
         application {
-            val config = environment.config
-            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
-            transaction {
-                Messages.deleteAll()
-                Users.deleteAll()
-            }
             module()
         }
 
@@ -132,16 +150,10 @@ class WebSocketIntegrationTest {
     @Test
     fun `should queue message for offline user and deliver on reconnect`() = testApplication {
         environment {
-            config = ApplicationConfig("application-test.yaml")
+            config = ApplicationConfig(configFileName)
         }
 
         application {
-            val config = environment.config
-            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
-            transaction {
-                Messages.deleteAll()
-                Users.deleteAll()
-            }
             module()
         }
 
@@ -188,16 +200,10 @@ class WebSocketIntegrationTest {
     @Test
     fun `should handle commands`() = testApplication {
         environment {
-            config = ApplicationConfig("application-test.yaml")
+            config = ApplicationConfig(configFileName)
         }
 
         application {
-            val config = environment.config
-            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
-            transaction {
-                Messages.deleteAll()
-                Users.deleteAll()
-            }
             module()
         }
 
@@ -228,7 +234,7 @@ class WebSocketIntegrationTest {
     @Test
     fun `should close connection to missing token`() = testApplication {
         environment {
-            config = ApplicationConfig("application-test.yaml")
+            config = ApplicationConfig(configFileName)
         }
 
         application {
@@ -272,16 +278,10 @@ class WebSocketIntegrationTest {
     @Test
     fun `should retrieve message history`() = testApplication {
         environment {
-            config = ApplicationConfig("application-test.yaml")
+            config = ApplicationConfig(configFileName)
         }
 
         application {
-            val config = environment.config
-            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
-            transaction {
-                Messages.deleteAll()
-                Users.deleteAll()
-            }
             module()
         }
 
@@ -329,16 +329,10 @@ class WebSocketIntegrationTest {
     @Test
     fun `should list online users`() = testApplication {
         environment {
-            config = ApplicationConfig("application-test.yaml")
+            config = ApplicationConfig(configFileName)
         }
 
         application {
-            val config = environment.config
-            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
-            transaction {
-                Messages.deleteAll()
-                Users.deleteAll()
-            }
             module()
         }
 
@@ -374,16 +368,10 @@ class WebSocketIntegrationTest {
     @Test
     fun `should close connection on bye command`() = testApplication {
         environment {
-            config = ApplicationConfig("application-test.yaml")
+            config = ApplicationConfig(configFileName)
         }
 
         application {
-            val config = environment.config
-            DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
-            transaction {
-                Messages.deleteAll()
-                Users.deleteAll()
-            }
             module()
         }
 
