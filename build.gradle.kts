@@ -9,6 +9,10 @@ plugins {
     id("io.ktor.plugin") version "3.2.0"
 }
 
+kotlin {
+    jvmToolchain(17)
+}
+
 group = "learn.ktor"
 version = "0.0.1"
 

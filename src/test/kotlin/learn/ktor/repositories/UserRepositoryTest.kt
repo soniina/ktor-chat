@@ -1,7 +1,10 @@
 package learn.ktor.repositories
 
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import learn.ktor.config.DatabaseFactory
+import org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException
+import org.jetbrains.exposed.exceptions.ExposedSQLException
 import kotlin.test.*
 
 class UserRepositoryTest {
@@ -23,10 +26,15 @@ class UserRepositoryTest {
 
     @Test
     fun `should not allow duplicate usernames`() = runTest {
-        val user1 = userRepository.addUser("alice", "password")
-        val user2 = userRepository.addUser("alice", "other")
-        assertNotNull(user1)
-        assertNull(user2)
+        userRepository.addUser("alice", "password")
+
+        val exception = assertFailsWith<ExposedSQLException> {
+            runBlocking {
+                userRepository.addUser("alice", "other")
+            }
+        }
+
+        assertTrue(exception.cause is JdbcSQLIntegrityConstraintViolationException)
     }
 
     @Test

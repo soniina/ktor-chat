@@ -16,17 +16,12 @@ class TokenService(private val properties: JwtProperties) {
             .withExpiresAt(Date(System.currentTimeMillis() + properties.expiration))
             .sign(algorithm)
 
-    fun verifyToken(token: String): String? =
-        try {
-            JWT.require(algorithm)
-                .withIssuer(properties.issuer)
-                .withAudience(properties.audience)
-                .build()
-                .verify(token)
-                .getClaim("user")
-                .asString()
-                .takeIf { it.isNotBlank() }
-        } catch (e: Exception) {
-            null
-        }
+    fun verifyToken(token: String): String =
+        JWT.require(algorithm)
+            .withIssuer(properties.issuer)
+            .withAudience(properties.audience)
+            .build()
+            .verify(token)
+            .getClaim("user")
+            .asString()
 }

@@ -2,7 +2,7 @@ package learn.ktor.config
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import io.ktor.server.config.*
+import io.ktor.server.config.ApplicationConfig
 import learn.ktor.repositories.Messages
 import learn.ktor.repositories.Users
 import org.jetbrains.exposed.sql.Database

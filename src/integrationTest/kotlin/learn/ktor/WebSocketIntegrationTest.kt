@@ -271,7 +271,7 @@ class WebSocketIntegrationTest {
             val closeReason = closeReason.await()
             assertNotNull(closeReason)
             assertEquals(CloseReason.Codes.VIOLATED_POLICY.code, closeReason.code)
-            assertEquals("Invalid token", closeReason.message)
+            assertTrue(closeReason.message.contains("Invalid token"))
         }
     }
 

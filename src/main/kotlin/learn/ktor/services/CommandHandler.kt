@@ -9,6 +9,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 class CommandHandler(private val messageRepository: MessageRepository, private val userRepository: UserRepository, private val onlineUserProvider: OnlineUserProvider) {
+
     suspend fun handle(user: String, text: String): ChatEvent {
         val parts = text.trim().split("\\s+".toRegex(), limit = 2)
         val command = parts[0]
@@ -27,7 +28,6 @@ class CommandHandler(private val messageRepository: MessageRepository, private v
                 if (argument == null) {
                     ChatEvent.ErrorMessage("Usage: /history <username>")
                 } else {
-
                     val userId = userRepository.getIdByUsername(user)
                         ?: return ChatEvent.ErrorMessage("Internal error: user not found")
 

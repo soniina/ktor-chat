@@ -1,7 +1,6 @@
 package learn.ktor.config
 
-import io.ktor.server.config.*
-
+import io.ktor.server.config.ApplicationConfig
 
 data class JwtProperties(
     val secret: String,

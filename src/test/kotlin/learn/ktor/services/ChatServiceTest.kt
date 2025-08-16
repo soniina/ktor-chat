@@ -43,7 +43,8 @@ class ChatServiceTest {
         coEvery { userRepository.getIdByUsername(user.username) } returns user.id
         coEvery { connectionManager.sendTo(user.username, any()) } just Runs
         coEvery { connectionManager.isOnline(user.username) } returns true
-        coEvery { messageRepository.getUndeliveredMessagesFor(user.id) } returns listOf(Message(1, sender.id, user.id, "Hi!", System.currentTimeMillis()))
+        coEvery { messageRepository.getUndeliveredMessagesFor(user.id) } returns listOf(
+            Message(1, sender.id, user.id, "Hi!", System.currentTimeMillis()))
         coEvery { userRepository.getUsernameById(sender.id) } returns sender.username
         coEvery { messageRepository.markAsDelivered(any()) } just Runs
 
@@ -146,7 +147,8 @@ class ChatServiceTest {
             userRepository.getIdByUsername(recipient.username)
             messageRepository.saveMessage(sender.id, recipient.id, message)
             connectionManager.isOnline(recipient.username)
-            connectionManager.sendTo(sender.username, ChatEvent.CommandResult("queued", "to ${recipient.username} (offline — will be delivered later)"))
+            connectionManager.sendTo(sender.username, ChatEvent.CommandResult("queued",
+                "to ${recipient.username} (offline — will be delivered later)"))
         }
     }
 

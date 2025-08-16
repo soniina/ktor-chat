@@ -25,8 +25,10 @@ fun Application.configureWebSockets(tokenService: TokenService, chatService: Cha
                 return@webSocket
             }
 
-            val user = tokenService.verifyToken(token) ?: run {
-                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Invalid token"))
+            val user = try {
+                tokenService.verifyToken(token)
+            } catch (e: Exception) {
+                close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Invalid token: ${e.message}"))
                 return@webSocket
             }
 

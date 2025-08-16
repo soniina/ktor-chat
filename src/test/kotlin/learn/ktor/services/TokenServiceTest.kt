@@ -1,10 +1,13 @@
 package learn.ktor.services
 
+import com.auth0.jwt.exceptions.JWTDecodeException
+import com.auth0.jwt.exceptions.SignatureVerificationException
+import com.auth0.jwt.exceptions.TokenExpiredException
 import learn.ktor.config.JwtProperties
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
 class TokenServiceTest {
 
@@ -34,7 +37,9 @@ class TokenServiceTest {
     fun `should not verify invalid token`() {
         val invalidToken = "not.a.jwt.token"
 
-        assertNull(tokenService.verifyToken(invalidToken))
+        assertFailsWith<JWTDecodeException> {
+            tokenService.verifyToken(invalidToken)
+        }
     }
 
     @Test
@@ -44,12 +49,16 @@ class TokenServiceTest {
         val otherProperties = properties.copy(secret = "other-secret")
         val otherService = TokenService(otherProperties)
 
-        assertNull(otherService.verifyToken(token))
+        assertFailsWith<SignatureVerificationException> {
+            otherService.verifyToken(token)
+        }
     }
 
     @Test
     fun `should not verify empty token`() {
-        assertNull(tokenService.verifyToken(""))
+        assertFailsWith<JWTDecodeException> {
+            tokenService.verifyToken("")
+        }
     }
 
     @Test
@@ -58,6 +67,8 @@ class TokenServiceTest {
         val expiredTokenService = TokenService(expiredProperties)
         val token = expiredTokenService.generateToken(username)
 
-        assertNull(expiredTokenService.verifyToken(token))
+        assertFailsWith<TokenExpiredException> {
+            tokenService.verifyToken(token)
+        }
     }
 }

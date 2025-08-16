@@ -1,8 +1,8 @@
 package learn.ktor.application
 
-import io.ktor.serialization.kotlinx.json.*
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
-import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import kotlinx.serialization.json.Json
 import learn.ktor.config.DatabaseFactory
 import learn.ktor.config.getJwtProperties
@@ -10,7 +10,6 @@ import learn.ktor.connection.ConnectionManager
 import learn.ktor.repositories.MessageRepository
 import learn.ktor.repositories.UserRepository
 import learn.ktor.routes.*
-import learn.ktor.routes.configureAuthRouting
 import learn.ktor.services.TokenService
 import learn.ktor.services.ChatService
 import learn.ktor.services.CommandHandler

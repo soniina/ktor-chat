@@ -34,7 +34,8 @@ class ChatService(private val connectionManager: ConnectionManager, private val 
 
         val undeliveredMessages = messageRepository.getUndeliveredMessagesFor(userId)
         undeliveredMessages.forEach {
-            if (sendMessage(userRepository.getUsernameById(it.senderId) ?: "unknown", username, it.content)) messageRepository.markAsDelivered(it.id)
+            if (sendMessage(userRepository.getUsernameById(it.senderId) ?: "unknown", username, it.content))
+                messageRepository.markAsDelivered(it.id)
         }
     }
 
@@ -55,27 +56,18 @@ class ChatService(private val connectionManager: ConnectionManager, private val 
     }
 
     private suspend fun handleDirectMessage(username: String, text: String) {
-        val parts = text.split(" ", limit = 2)
-        if (parts.size < 2) {
-            notifyUser(username, ChatEvent.ErrorMessage("Invalid message format. Use '@username message'"))
-            return
-        }
+        val parts = text.split(" ", limit = 2).takeIf { it.size == 2 }
+            ?: return notifyUser(username, ChatEvent.ErrorMessage("Invalid message format. Use '@username message'"))
 
         val recipient = parts[0].substring(1)
 
-        val messageText = parts[1]
-        if (messageText.isBlank()) {
-            notifyUser(username, ChatEvent.ErrorMessage("Message must not be empty"))
-            return
-        }
+        val messageText = parts[1].takeIf { it.isNotBlank() }
+            ?: return notifyUser(username, ChatEvent.ErrorMessage("Message must not be empty"))
 
-        val senderId = userRepository.getIdByUsername(username) ?: return notifyUser(username, ChatEvent.ErrorMessage("Internal error: user not found"))
+        val senderId = userRepository.getIdByUsername(username)
+            ?: return notifyUser(username, ChatEvent.ErrorMessage("Internal error: user not found"))
         val recipientId = userRepository.getIdByUsername(recipient)
-
-        if (recipientId == null) {
-            notifyUser(username, ChatEvent.ErrorMessage("Unknown user: $recipient"))
-            return
-        }
+            ?: return notifyUser(username, ChatEvent.ErrorMessage("Unknown user: $recipient"))
 
         val message = try {
             messageRepository.saveMessage(senderId, recipientId, messageText)
@@ -92,5 +84,4 @@ class ChatService(private val connectionManager: ConnectionManager, private val 
     }
 
     suspend fun cleanUp(username: String) = connectionManager.unregister(username)
-
 }

@@ -43,5 +43,4 @@ fun Application.configureAuthRouting(userService: UserService, tokenService: Tok
             call.respond(HttpStatusCode.OK, AuthResponse(tokenService.generateToken(username)))
         }
     }
-
 }
