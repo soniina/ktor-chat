@@ -1,50 +1,71 @@
 package learn.ktor.services
 
+import io.mockk.coEvery
+import io.mockk.impl.annotations.InjectMockKs
+import io.mockk.impl.annotations.MockK
+import io.mockk.junit5.MockKExtension
 import kotlinx.coroutines.test.runTest
-import learn.ktor.config.DatabaseFactory
+import learn.ktor.model.User
 import learn.ktor.repositories.UserRepository
+import org.junit.jupiter.api.extension.ExtendWith
 import kotlin.test.*
+import org.mindrot.jbcrypt.BCrypt
 
+@ExtendWith(MockKExtension::class)
 class UserServiceTest {
 
-    private val userRepository = UserRepository()
-    private val userService = UserService(userRepository)
+    @MockK
+    lateinit var userRepository: UserRepository
 
-    @BeforeTest
-    fun setup() {
-        DatabaseFactory.connect(DatabaseFactory.h2TestConfig())
-    }
+    @InjectMockKs
+    lateinit var userService:UserService
 
     @Test
     fun `should register new user`() = runTest {
-        val result = userService.register("alice", "password")
-        assertTrue(result)
+        val user = User(1, "alice", "hashedPassword")
+
+        coEvery { userRepository.getUserByUsername(user.username) } returns null
+        coEvery { userRepository.addUser(user.username, any()) } returns user
+
+        assertTrue(userService.register(user.username, "password"))
     }
 
     @Test
     fun `should not register duplicate usernames`() = runTest {
-        userService.register("alice", "password")
-        val result = userService.register("alice", "another")
-        assertFalse(result)
+        val user = User(1, "alice", "hashedPassword")
+
+        coEvery { userRepository.getUserByUsername(user.username) } returns user
+
+        assertFalse(userService.register(user.username, "password"))
     }
 
     @Test
     fun `should authenticate user`() = runTest {
-        userService.register("alice", "password")
-        val result = userService.authenticate("alice", "password")
-        assertTrue(result)
+        val password = "password"
+        val hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt())
+        val user = User(1, "alice", hashedPassword)
+
+        coEvery { userRepository.getUserByUsername(user.username) } returns user
+
+        assertTrue(userService.authenticate(user.username, password))
     }
 
     @Test
     fun `should not authenticate invalid password`() = runTest {
-        userService.register("alice", "password")
-        val result = userService.authenticate("alice", "wrong")
-        assertFalse(result)
+        val hashedPassword = BCrypt.hashpw("another", BCrypt.gensalt())
+        val user = User(1, "alice", hashedPassword)
+
+        coEvery { userRepository.getUserByUsername(user.username) } returns user
+
+        assertFalse(userService.authenticate(user.username, "password"))
     }
 
     @Test
     fun `should not authenticate unregistered user`() = runTest {
-        val result = userService.authenticate("alice", "password")
-        assertFalse(result)
+        val username = "alice"
+
+        coEvery { userRepository.getUserByUsername(username) } returns null
+
+        assertFalse(userService.authenticate(username, "password"))
     }
 }
