@@ -20,7 +20,7 @@ object DatabaseFactory {
 
     fun postgresConfig(appConfig: ApplicationConfig): HikariConfig = HikariConfig().apply {
         jdbcUrl = appConfig.property("ktor.db.url").getString()
-        driverClassName = "org.postgresql.Driver"
+        driverClassName = appConfig.property("ktor.db.driver").getString()
         username = appConfig.property("ktor.db.user").getString()
         password = appConfig.property("ktor.db.password").getString()
         maximumPoolSize = appConfig.property("ktor.db.maxPoolSize").getString().toInt()
