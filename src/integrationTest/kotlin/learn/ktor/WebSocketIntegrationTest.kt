@@ -37,8 +37,8 @@ class WebSocketIntegrationTest {
     @BeforeAll
     fun setupAll() {
         if (!isDbConnected) {
-            val config = DatabaseFactory.postgresConfig(ApplicationConfig(configFileName))
-            DatabaseFactory.connect(config)
+            DatabaseFactory.connect(ApplicationConfig(configFileName))
+            DatabaseFactory.init(listOf(Users, Messages))
             isDbConnected = true
         }
     }

@@ -1,0 +1,11 @@
+ktor:
+  db:
+    url: jdbc:tc:postgresql:16:///ktor_chat
+    driver: org.testcontainers.jdbc.ContainerDatabaseDriver
+    maxPoolSize: 5
+  jwt:
+    secret: test-secret
+    issuer: test-issuer
+    audience: test-audience
+    realm: test-realm
+    expiration: 360000

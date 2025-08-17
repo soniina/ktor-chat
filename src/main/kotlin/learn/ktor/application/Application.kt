@@ -8,7 +8,9 @@ import learn.ktor.config.DatabaseFactory
 import learn.ktor.config.getJwtProperties
 import learn.ktor.connection.ConnectionManager
 import learn.ktor.repositories.MessageRepository
+import learn.ktor.repositories.Messages
 import learn.ktor.repositories.UserRepository
+import learn.ktor.repositories.Users
 import learn.ktor.routes.*
 import learn.ktor.services.TokenService
 import learn.ktor.services.ChatService
@@ -21,16 +23,17 @@ fun main(args: Array<String>) {
 
 fun Application.module() {
     val config = environment.config
-    val jwtProperties = config.getJwtProperties()
+
+    DatabaseFactory.connect(config)
+    DatabaseFactory.init(listOf(Users, Messages))
 
     val connectionManager = ConnectionManager()
     val userRepository = UserRepository()
     val messageRepository = MessageRepository()
     val userService = UserService(userRepository)
-    val tokenService = TokenService(jwtProperties)
+    val tokenService = TokenService(config.getJwtProperties())
     val commandHandler = CommandHandler(messageRepository, userRepository, connectionManager)
     val chatService = ChatService(connectionManager, messageRepository, commandHandler, userRepository)
-
 
     install(ContentNegotiation) {
         json(Json {
@@ -42,6 +45,4 @@ fun Application.module() {
     configureRouting()
     configureWebSockets(tokenService, chatService)
     configureAuthRouting(userService, tokenService)
-
-    DatabaseFactory.connect(DatabaseFactory.postgresConfig(config))
 }

@@ -15,7 +15,11 @@ class MessageRepositoryTest {
 
     @BeforeTest
     fun setup() = runTest {
-        DatabaseFactory.connect(DatabaseFactory.h2TestConfig())
+        DatabaseFactory.connect(
+            url = "jdbc:h2:mem:test-${System.nanoTime()};DB_CLOSE_DELAY=-1;",
+            driver = "org.h2.Driver"
+        )
+        DatabaseFactory.init(listOf(Messages))
 
         sender = userRepository.addUser("test_sender", "password")!!
         recipient = userRepository.addUser("test_recipient", "password")!!

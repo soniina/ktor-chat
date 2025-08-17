@@ -13,7 +13,11 @@ class UserRepositoryTest {
 
     @BeforeTest
     fun setup() {
-        DatabaseFactory.connect(DatabaseFactory.h2TestConfig())
+        DatabaseFactory.connect(
+            url = "jdbc:h2:mem:test-${System.nanoTime()};DB_CLOSE_DELAY=-1;",
+            driver = "org.h2.Driver"
+        )
+        DatabaseFactory.init(listOf(Users))
     }
 
     @Test

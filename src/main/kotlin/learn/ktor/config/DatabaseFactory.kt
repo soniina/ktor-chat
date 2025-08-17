@@ -3,36 +3,44 @@ package learn.ktor.config
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.config.ApplicationConfig
-import learn.ktor.repositories.Messages
-import learn.ktor.repositories.Users
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.transactions.transaction
 
 object DatabaseFactory {
 
-    fun connect(config: HikariConfig) {
-        Database.connect(HikariDataSource(config))
+    fun connect(appConfig: ApplicationConfig): Database {
+        val hikariConfig = HikariConfig().apply {
+            jdbcUrl = appConfig.property("ktor.db.url").getString()
+            driverClassName = appConfig.property("ktor.db.driver").getString()
+            username = appConfig.propertyOrNull("ktor.db.user")?.getString()
+            password = appConfig.propertyOrNull("ktor.db.password")?.getString()
+            maximumPoolSize = appConfig.property("ktor.db.maxPoolSize").getString().toInt()
+            isAutoCommit = false
+            transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+        }
+        return Database.connect(HikariDataSource(hikariConfig))
+    }
+
+    fun connect(url: String, driver: String, dbUser: String? = null, dbPassword: String? = null): Database {
+        val hikariConfig = HikariConfig().apply {
+            jdbcUrl = url
+            driverClassName = driver
+            username = dbUser
+            password = dbPassword
+            maximumPoolSize = 5
+            isAutoCommit = false
+            transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+        }
+        return Database.connect(HikariDataSource(hikariConfig))
+    }
+
+    fun init(tables: List<Table>) {
         transaction {
-            SchemaUtils.create(Users, Messages)
+            SchemaUtils.createMissingTablesAndColumns(*tables.toTypedArray())
         }
     }
 
-    fun postgresConfig(appConfig: ApplicationConfig): HikariConfig = HikariConfig().apply {
-        jdbcUrl = appConfig.property("ktor.db.url").getString()
-        driverClassName = appConfig.property("ktor.db.driver").getString()
-        username = appConfig.property("ktor.db.user").getString()
-        password = appConfig.property("ktor.db.password").getString()
-        maximumPoolSize = appConfig.property("ktor.db.maxPoolSize").getString().toInt()
-        isAutoCommit = false
-        transactionIsolation = "TRANSACTION_REPEATABLE_READ"
-    }
 
-    fun h2TestConfig(): HikariConfig = HikariConfig().apply {
-        jdbcUrl = "jdbc:h2:mem:test-${System.nanoTime()};DB_CLOSE_DELAY=-1;"
-        driverClassName = "org.h2.Driver"
-        maximumPoolSize = 5
-        isAutoCommit = false
-        transactionIsolation = "TRANSACTION_REPEATABLE_READ"
-    }
 }
