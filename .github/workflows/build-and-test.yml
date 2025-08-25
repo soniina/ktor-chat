@@ -57,7 +57,7 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle-
 
-      - name: Run unit tests
+      - name: Run integration tests
         run: ./gradlew --no-daemon integrationTest
 
 
